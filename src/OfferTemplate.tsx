@@ -14,7 +14,7 @@ export interface OfferTemplateRef {
   generatePDF: () => Promise<Blob>
 }
 
-// 1. HELPER FUNCTION: Defines the Annex Text
+// --- 1. ANNEX CONTENT (The "AS GREEN LAND" text) ---
 function getAnnexHTML() {
   return `
     <div style="font-family: Arial, sans-serif; color: #000; line-height: 1.4; font-size: 11pt;">
@@ -220,72 +220,61 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setTechnicalDetailsTable(updated)
     }
 
-    // --- NEW: Unified PDF Generation Logic ---
+    // --- 2. NEW PDF GENERATION LOGIC (Merged) ---
     const generateFinalPDF = async (): Promise<Blob> => {
       if (!templateRef.current) throw new Error('Template ref not found')
 
-      // --- PAGE 1: Main Offer ---
-      // Capture the main offer (current view)
-      const canvas = await html2canvas(templateRef.current, {
-        scale: 2, // Better quality
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      })
+      try {
+        // --- PAGE 1: Main Offer ---
+        const canvas = await html2canvas(templateRef.current, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        })
 
-      // Calculate PDF dimensions (A4)
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const pdfWidth = 210
-      // Calculate image height to fit width
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width
-      
-      // Add Page 1 image (Use JPEG 0.8 for smaller size)
-      const imgData = canvas.toDataURL('image/jpeg', 0.8)
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight)
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const pdfWidth = 210
+        const imgHeight = (canvas.height * pdfWidth) / canvas.width
+        const imgData = canvas.toDataURL('image/jpeg', 0.8)
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight)
 
-      // --- PAGE 2: Annex (Formular de Oferta) ---
-      pdf.addPage() // Create blank page 2
+        // --- PAGE 2: Annex (Formular de Oferta) ---
+        pdf.addPage()
 
-      // Create a hidden temporary container for the Annex
-      const annexContainer = document.createElement('div')
-      annexContainer.style.position = 'absolute'
-      annexContainer.style.left = '-9999px' // Hide it off-screen
-      annexContainer.style.top = '0'
-      annexContainer.style.width = '210mm' // Exact A4 width
-      annexContainer.style.backgroundColor = 'white'
-      annexContainer.style.padding = '20mm' // Standard margins
-      
-      // Insert the HTML text
-      annexContainer.innerHTML = getAnnexHTML()
-      document.body.appendChild(annexContainer)
+        const annexContainer = document.createElement('div')
+        annexContainer.style.position = 'absolute'
+        annexContainer.style.left = '-9999px'
+        annexContainer.style.top = '0'
+        annexContainer.style.width = '210mm'
+        annexContainer.style.backgroundColor = 'white'
+        annexContainer.style.padding = '20mm'
+        
+        annexContainer.innerHTML = getAnnexHTML()
+        document.body.appendChild(annexContainer)
 
-      // Capture Page 2
-      const annexCanvas = await html2canvas(annexContainer, {
-        scale: 2,
-        logging: false,
-        backgroundColor: '#ffffff'
-      })
+        const annexCanvas = await html2canvas(annexContainer, {
+          scale: 2,
+          logging: false,
+          backgroundColor: '#ffffff'
+        })
 
-      // Add Page 2 image
-      const annexImgHeight = (annexCanvas.height * pdfWidth) / annexCanvas.width
-      const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.8)
-      pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, annexImgHeight)
+        const annexImgHeight = (annexCanvas.height * pdfWidth) / annexCanvas.width
+        const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.8)
+        
+        pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, annexImgHeight)
+        document.body.removeChild(annexContainer)
 
-      // Clean up DOM
-      document.body.removeChild(annexContainer)
+        return pdf.output('blob')
 
-      // Return the final PDF Blob
-      return pdf.output('blob')
+      } catch (error) {
+        console.error('Error in generateFinalPDF:', error)
+        throw error
+      }
     }
 
-    // Expose generatePDF function via ref for parent (OfferList)
-    useImperativeHandle(ref, () => ({
-      generatePDF: async () => {
-        return await generateFinalPDF()
-      }
-    }))
-
-    // Button handler for internal generation
+    // Connect the new logic to the Button
     const handleGeneratePDF = async () => {
       try {
         const pdfBlob = await generateFinalPDF()
@@ -295,6 +284,13 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         alert('Error generating PDF. Please try again.')
       }
     }
+
+    // Connect the new logic to the Ref (for ZIP download)
+    useImperativeHandle(ref, () => ({
+      generatePDF: async () => {
+        return await generateFinalPDF()
+      },
+    }))
 
     return (
       <div className="offer-template-container">
@@ -432,6 +428,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               value={customText.documentType}
               onChange={(val) => updateCustomText('documentType', val)}
             />
+
 
             <EditableText
               tagName="h2"
@@ -625,4 +622,4 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
   }
 )
 
-OfferTemplate.displayName = 'OfferTemplate';
+OfferTemplate.displayName = 'OfferTemplate'
