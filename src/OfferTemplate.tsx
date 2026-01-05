@@ -17,7 +17,7 @@ export interface OfferTemplateRef {
 // --- 1. ANNEX CONTENT (The "AS GREEN LAND" text) ---
 function getAnnexHTML() {
   return `
-    <div style="font-family: Arial, sans-serif; color: #000; line-height: 1.6; font-size: 11pt; background: white; padding: 20mm;">
+    <div style="font-family: Arial, sans-serif; color: #000; line-height: 1.6; font-size: 11pt; background: white; padding: 15mm 10mm;">
       <div style="margin-bottom: 20px;">
         <strong>S.C. AS GREEN LAND S.R.L</strong><br/>
         Sediu social - Str.Lalelelor 12 Comuna Nuci Sat Merii Petchii, Ilfov,<br/>
