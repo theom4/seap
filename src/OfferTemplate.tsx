@@ -17,8 +17,8 @@ export interface OfferTemplateRef {
 // --- 1. ANNEX CONTENT (The "AS GREEN LAND" text) ---
 function getAnnexHTML() {
   return `
-    <div style="font-family: Arial, sans-serif; color: #000; line-height: 1.4; font-size: 11pt;">
-      <div style="border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+    <div style="font-family: Arial, sans-serif; color: #000; line-height: 1.6; font-size: 11pt; background: white; padding: 20mm;">
+      <div style="margin-bottom: 20px;">
         <strong>S.C. AS GREEN LAND S.R.L</strong><br/>
         Sediu social - Str.Lalelelor 12 Comuna Nuci Sat Merii Petchii, Ilfov,<br/>
         CUI: RO 46581890 Registrul Comertului :J2022005182231<br/>
@@ -27,64 +27,62 @@ function getAnnexHTML() {
         Capital social: 200 RON
       </div>
 
-      <h2 style="text-align: center; margin: 20px 0; font-size: 16pt;">FORMULAR DE OFERTA</h2>
+      <h2 style="text-align: center; margin: 30px 0; font-size: 14pt; font-weight: bold;">FORMULAR DE OFERTA</h2>
 
-      <p style="margin-bottom: 15px;"><strong>Către ________________________</strong></p>
+      <p style="margin-bottom: 15px;"><strong>Către</strong></p>
       <p style="margin-bottom: 15px;"><strong>Domnilor,</strong></p>
 
-      <p style="margin-bottom: 10px;">
-        1. Examinând documentaţia de atribuire, subsemnaţii, reprezentanţi ai ofertantului AS GREEN LAND SRL, 
-        ne oferim ca, în conformitate cu prevederile şi cerinţele cuprinse în documentaţia mai sus menţionată, 
-        sa furnizăm <strong>DIVERSE MATERIALE</strong> pentru suma de prezenta in tabelul din anexa, 
-        platibila după recepţia produselor.
+      <p style="margin-bottom: 12px; text-align: justify;">
+        1. Examinând documentaţia de atribuire, subsemnaţii, reprezentanţi ai ofertantului AS GREEN LAND SRL,
+        ne oferim ca, în conformitate cu prevederile şi cerinţele cuprinse în documentaţia mai sus menţionată,
+        sa furnizăm DIVERSE MATERIALE. pentru suma de prezenta in tabelul din anexa,
+        platibila după recepţia produselor
       </p>
 
-      <p style="margin-bottom: 10px;">
+      <p style="margin-bottom: 12px; text-align: justify;">
         2. Ne angajăm ca, în cazul în care oferta noastră este stabilită câştigătoare, sa furnizam produsele
         în termen de 5 zile de la comanda.
       </p>
 
-      <p style="margin-bottom: 10px;">
+      <p style="margin-bottom: 12px; text-align: justify;">
         3. Ne angajăm sa menţinem aceasta oferta valabilă pentru o durata de 30 zile, (treizeci de zile),
-        respectiv pana la data de <strong>18.01.2026</strong>, şi ea va rămâne obligatorie pentru noi şi poate fi acceptată
+        respectiv pana la data de 18.01.2026, şi ea va rămâne obligatorie pentru noi şi poate fi acceptată
         oricând înainte de expirarea perioadei de valabilitate.
       </p>
 
-      <p style="margin-bottom: 10px;">
+      <p style="margin-bottom: 12px; text-align: justify;">
         4. Pana la încheierea şi semnarea contractului de achiziţie publica aceasta oferta, împreună cu
         comunicarea transmisă de dumneavoastră, prin care oferta noastră este stabilită câştigătoare, vor
         constitui un contract angajant între noi.
       </p>
 
-      <div style="margin-bottom: 10px;">
-        5. Precizam ca:<br/>
-        <div style="display: flex; align-items: center; margin-top: 5px;">
-           <span style="display:inline-block; width:16px; height:16px; border:1px solid #000; margin-right:8px;"></span> 
-           depunem oferta alternativa, ale carei detalii sunt prezentate într-un formular de oferta separat, marcat în mod clar "alternativa";
-        </div>
-        <div style="display: flex; align-items: center; margin-top: 5px;">
-           <span style="display:inline-block; width:16px; height:16px; border:1px solid #000; background-color: black; color: white; text-align: center; line-height: 16px; font-weight: bold; margin-right:8px;">X</span> 
-           nu depunem oferta alternativa.
-        </div>
+      <div style="margin-bottom: 12px;">
+        <p style="margin-bottom: 8px;">5. Precizam ca:</p>
+        <p style="margin-left: 20px; margin-bottom: 5px;">
+          │_│ depunem oferta alternativa, ale carei detalii sunt prezentate într-un formular de oferta separat, marcat în mod clar "alternativa";
+        </p>
+        <p style="margin-left: 20px; margin-bottom: 5px;">
+          │X│ nu depunem oferta alternativa.
+        </p>
       </div>
 
-      <p style="margin-bottom: 10px;">
+      <p style="margin-bottom: 12px; text-align: justify;">
         6. Am înţeles şi consimtim ca, în cazul în care oferta noastră este stabilită ca fiind câştigătoare, sa
         constituim garanţia de buna execuţie în conformitate cu prevederile din documentaţia de atribuire.
       </p>
 
-      <p style="margin-bottom: 20px;">
+      <p style="margin-bottom: 20px; text-align: justify;">
         7. Intelegem ca nu sunteţi obligaţi sa acceptaţi oferta cu cel mai scăzut preţ sau orice alta oferta pe
         care o puteti primi.
       </p>
 
       <div style="margin-top: 40px;">
-        <p>Data <strong>18.12.2025</strong></p>
-        <div style="margin-top: 10px;">
-          <strong>STRAUT ANDREI</strong><br/>
-          (semnatura), în calitate de ADMINISTRATOR legal autorizat sa semnez oferta
-          pentru şi în numele S.C. AS GREEN LAND S.R.L
-        </div>
+        <p style="margin-bottom: 5px;"><strong>Data</strong></p>
+        <p style="margin-bottom: 20px;">18.12.2025</p>
+        <p style="text-align: justify;">
+          <strong>STRAUT ANDREI</strong> , (semnatura), în calitate de <strong>ADMINISTRATOR</strong> legal autorizat sa semnez oferta
+          pentru şi în numele <strong>S.C. AS GREEN LAND S.R.L</strong>
+        </p>
       </div>
     </div>
   `
