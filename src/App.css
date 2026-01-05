@@ -1,0 +1,33 @@
+/* App-specific styles */
+@keyframes spin-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-spin-reverse {
+  animation: spin-reverse 1.5s linear infinite;
+}
+
+/* Custom scrollbar for file list */
+.space-y-2::-webkit-scrollbar {
+  width: 6px;
+}
+
+.space-y-2::-webkit-scrollbar-track {
+  background: var(--color-surface);
+  border-radius: 10px;
+}
+
+.space-y-2::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 10px;
+}
+
+.space-y-2::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-hover);
+}
