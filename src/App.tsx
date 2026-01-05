@@ -99,10 +99,16 @@ function App() {
   useEffect(() => {
     try {
       // Load webhook response
+      // Load webhook response
       const savedResponse = localStorage.getItem(STORAGE_KEYS.WEBHOOK_RESPONSE)
       if (savedResponse) {
         const parsed = JSON.parse(savedResponse)
-        setWebhookResponse(parsed)
+        // FIX: Only restore if it is a valid array, otherwise clear it
+        if (Array.isArray(parsed)) {
+          setWebhookResponse(parsed)
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.WEBHOOK_RESPONSE)
+        }
       }
 
       // Load processing state
@@ -351,27 +357,13 @@ function App() {
       }
 
       // Validate and log webhook response structure
-      if (Array.isArray(responseData)) {
-        console.log(`Webhook response received: ${responseData.length} item(s)`)
-
-        // Check if this is the new direct format (array of OfferData)
-        if (responseData.length > 0 && responseData[0] && typeof responseData[0] === 'object' && 'offerMetadata' in responseData[0] && 'offerConent' in responseData[0]) {
-          console.log(`  Direct format: ${responseData.length} offer(s)`)
-        } else {
-          // Old nested format
-          responseData.forEach((item, idx) => {
-            if (item && typeof item === 'object' && 'results' in item && item.results && Array.isArray(item.results)) {
-              const totalOffers = item.results.reduce((sum, result) => {
-                return sum + (result.data && Array.isArray(result.data) ? result.data.length : 0)
-              }, 0)
-              console.log(`  Item ${idx + 1}: ${item.results.length} result(s) with ${totalOffers} total offer(s)`)
-            } else if (item && typeof item === 'object' && 'data' in item && item.data && Array.isArray(item.data)) {
-              console.log(`  Item ${idx + 1}: ${item.data.length} offer(s)`)
-            }
-          })
-        }
+      // FIX: Throw error if response is not an array (prevents saving error objects to state)
+      if (!Array.isArray(responseData)) {
+        console.error('Invalid response format:', responseData)
+        throw new Error('Server returned an invalid format (not an array)')
       }
 
+      console.log(`Webhook response received: ${responseData.length} item(s)`)
       setWebhookResponse(responseData)
 
       // Clear processing state
