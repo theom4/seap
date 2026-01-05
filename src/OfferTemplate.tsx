@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 import type { OfferData } from './types'
-import { generatePDFFromHTML } from './utils/htmlToPdf'
 import { EditableText } from './components/EditableText'
 import './OfferTemplate.css'
 
@@ -11,6 +12,82 @@ interface OfferTemplateProps {
 
 export interface OfferTemplateRef {
   generatePDF: () => Promise<Blob>
+}
+
+// 1. HELPER FUNCTION: Defines the Annex Text
+function getAnnexHTML() {
+  return `
+    <div style="font-family: Arial, sans-serif; color: #000; line-height: 1.4; font-size: 11pt;">
+      <div style="border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+        <strong>S.C. AS GREEN LAND S.R.L</strong><br/>
+        Sediu social - Str.Lalelelor 12 Comuna Nuci Sat Merii Petchii, Ilfov,<br/>
+        CUI: RO 46581890 Registrul Comertului :J2022005182231<br/>
+        Trezorerie ILFOV Cont RO88TREZ4215069XXX022087<br/>
+        Telefon: 0720.706.784 E-mail: asgreenland10@gmail.com<br/>
+        Capital social: 200 RON
+      </div>
+
+      <h2 style="text-align: center; margin: 20px 0; font-size: 16pt;">FORMULAR DE OFERTA</h2>
+
+      <p style="margin-bottom: 15px;"><strong>Către ________________________</strong></p>
+      <p style="margin-bottom: 15px;"><strong>Domnilor,</strong></p>
+
+      <p style="margin-bottom: 10px;">
+        1. Examinând documentaţia de atribuire, subsemnaţii, reprezentanţi ai ofertantului AS GREEN LAND SRL, 
+        ne oferim ca, în conformitate cu prevederile şi cerinţele cuprinse în documentaţia mai sus menţionată, 
+        sa furnizăm <strong>DIVERSE MATERIALE</strong> pentru suma de prezenta in tabelul din anexa, 
+        platibila după recepţia produselor.
+      </p>
+
+      <p style="margin-bottom: 10px;">
+        2. Ne angajăm ca, în cazul în care oferta noastră este stabilită câştigătoare, sa furnizam produsele
+        în termen de 5 zile de la comanda.
+      </p>
+
+      <p style="margin-bottom: 10px;">
+        3. Ne angajăm sa menţinem aceasta oferta valabilă pentru o durata de 30 zile, (treizeci de zile),
+        respectiv pana la data de <strong>18.01.2026</strong>, şi ea va rămâne obligatorie pentru noi şi poate fi acceptată
+        oricând înainte de expirarea perioadei de valabilitate.
+      </p>
+
+      <p style="margin-bottom: 10px;">
+        4. Pana la încheierea şi semnarea contractului de achiziţie publica aceasta oferta, împreună cu
+        comunicarea transmisă de dumneavoastră, prin care oferta noastră este stabilită câştigătoare, vor
+        constitui un contract angajant între noi.
+      </p>
+
+      <div style="margin-bottom: 10px;">
+        5. Precizam ca:<br/>
+        <div style="display: flex; align-items: center; margin-top: 5px;">
+           <span style="display:inline-block; width:16px; height:16px; border:1px solid #000; margin-right:8px;"></span> 
+           depunem oferta alternativa, ale carei detalii sunt prezentate într-un formular de oferta separat, marcat în mod clar "alternativa";
+        </div>
+        <div style="display: flex; align-items: center; margin-top: 5px;">
+           <span style="display:inline-block; width:16px; height:16px; border:1px solid #000; background-color: black; color: white; text-align: center; line-height: 16px; font-weight: bold; margin-right:8px;">X</span> 
+           nu depunem oferta alternativa.
+        </div>
+      </div>
+
+      <p style="margin-bottom: 10px;">
+        6. Am înţeles şi consimtim ca, în cazul în care oferta noastră este stabilită ca fiind câştigătoare, sa
+        constituim garanţia de buna execuţie în conformitate cu prevederile din documentaţia de atribuire.
+      </p>
+
+      <p style="margin-bottom: 20px;">
+        7. Intelegem ca nu sunteţi obligaţi sa acceptaţi oferta cu cel mai scăzut preţ sau orice alta oferta pe
+        care o puteti primi.
+      </p>
+
+      <div style="margin-top: 40px;">
+        <p>Data <strong>18.12.2025</strong></p>
+        <div style="margin-top: 10px;">
+          <strong>STRAUT ANDREI</strong><br/>
+          (semnatura), în calitate de ADMINISTRATOR legal autorizat sa semnez oferta
+          pentru şi în numele S.C. AS GREEN LAND S.R.L
+        </div>
+      </div>
+    </div>
+  `
 }
 
 export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
@@ -143,27 +220,81 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setTechnicalDetailsTable(updated)
     }
 
-    const handleGeneratePDF = async () => {
-      if (!templateRef.current) return
+    // --- NEW: Unified PDF Generation Logic ---
+    const generateFinalPDF = async (): Promise<Blob> => {
+      if (!templateRef.current) throw new Error('Template ref not found')
 
+      // --- PAGE 1: Main Offer ---
+      // Capture the main offer (current view)
+      const canvas = await html2canvas(templateRef.current, {
+        scale: 2, // Better quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      // Calculate PDF dimensions (A4)
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pdfWidth = 210
+      // Calculate image height to fit width
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width
+      
+      // Add Page 1 image (Use JPEG 0.8 for smaller size)
+      const imgData = canvas.toDataURL('image/jpeg', 0.8)
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight)
+
+      // --- PAGE 2: Annex (Formular de Oferta) ---
+      pdf.addPage() // Create blank page 2
+
+      // Create a hidden temporary container for the Annex
+      const annexContainer = document.createElement('div')
+      annexContainer.style.position = 'absolute'
+      annexContainer.style.left = '-9999px' // Hide it off-screen
+      annexContainer.style.top = '0'
+      annexContainer.style.width = '210mm' // Exact A4 width
+      annexContainer.style.backgroundColor = 'white'
+      annexContainer.style.padding = '20mm' // Standard margins
+      
+      // Insert the HTML text
+      annexContainer.innerHTML = getAnnexHTML()
+      document.body.appendChild(annexContainer)
+
+      // Capture Page 2
+      const annexCanvas = await html2canvas(annexContainer, {
+        scale: 2,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      // Add Page 2 image
+      const annexImgHeight = (annexCanvas.height * pdfWidth) / annexCanvas.width
+      const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.8)
+      pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, annexImgHeight)
+
+      // Clean up DOM
+      document.body.removeChild(annexContainer)
+
+      // Return the final PDF Blob
+      return pdf.output('blob')
+    }
+
+    // Expose generatePDF function via ref for parent (OfferList)
+    useImperativeHandle(ref, () => ({
+      generatePDF: async () => {
+        return await generateFinalPDF()
+      }
+    }))
+
+    // Button handler for internal generation
+    const handleGeneratePDF = async () => {
       try {
-        const pdfBlob = await generatePDFFromHTML(templateRef.current)
+        const pdfBlob = await generateFinalPDF()
         onGeneratePDF(pdfBlob)
       } catch (error) {
         console.error('Error generating PDF:', error)
         alert('Error generating PDF. Please try again.')
       }
     }
-
-    // Expose generatePDF function via ref
-    useImperativeHandle(ref, () => ({
-      generatePDF: async () => {
-        if (!templateRef.current) {
-          throw new Error('Template ref is not available')
-        }
-        return await generatePDFFromHTML(templateRef.current)
-      },
-    }))
 
     return (
       <div className="offer-template-container">
@@ -301,7 +432,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               value={customText.documentType}
               onChange={(val) => updateCustomText('documentType', val)}
             />
-
 
             <EditableText
               tagName="h2"
@@ -495,9 +625,4 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
   }
 )
 
-OfferTemplate.displayName = 'OfferTemplate'
-
-
-
-
-
+OfferTemplate.displayName = 'OfferTemplate';
