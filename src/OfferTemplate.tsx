@@ -478,6 +478,9 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           </button>
         </div>
 
+        {/* Annex Page Preview - SHOWN FIRST */}
+        <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
+
         <div ref={templateRef} className="offer-template">
           {/* Header */}
           <div className="offer-header">
@@ -839,9 +842,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             />
           </div>
         </div>
-
-        {/* Annex Page Preview */}
-        <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
       </div>
     )
   }
