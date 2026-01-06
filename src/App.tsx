@@ -366,6 +366,24 @@ function App() {
 
       console.log(`Webhook response received: ${responseData.length} item(s)`)
 
+      // DEBUG: Log the structure of the first item to understand where products are
+      if (responseData.length > 0) {
+        console.log('First webhook item structure:', JSON.stringify(responseData[0], null, 2))
+        const firstItem = responseData[0] as any
+        if (firstItem.offerConent) {
+          console.log('offerConent keys:', Object.keys(firstItem.offerConent))
+          console.log('offerConent.products:', firstItem.offerConent.products)
+        }
+        if (firstItem.offerContent) {
+          console.log('offerContent keys:', Object.keys(firstItem.offerContent))
+          console.log('offerContent.products:', firstItem.offerContent.products)
+        }
+        // Check if products exist at top level
+        if (firstItem.products) {
+          console.log('Top-level products found:', firstItem.products.length)
+        }
+      }
+
       // Extract products from PDF files and merge with webhook response
       try {
         const pdfFiles = pendingFiles.filter(({ file }) =>
