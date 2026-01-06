@@ -335,7 +335,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
     const handleRemoveProduct = (index: number) => {
       const updated = products.filter((_: Product, i: number) => i !== index)
-      // Re-number the items
       updated.forEach((product: Product, i: number) => {
         product.itemNumber = i + 1
       })
