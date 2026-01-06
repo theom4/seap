@@ -514,42 +514,42 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
         {/* Products Table Display - Read-only preview */}
         <div style={{ marginTop: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#fff' }}>
-          <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: 'bold', textAlign: 'center' }}>
+          <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', color: '#000' }}>
             Tabel Produse
           </h3>
 
           {products.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', border: '1px solid #000' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', border: '1px solid #000', color: '#000' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px' }}>Nr.<br/>crt.</th>
-                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center' }}>Denumire produs</th>
-                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px' }}>U.M.</th>
-                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '80px' }}>Cantitati</th>
-                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px' }}>Pret unitar<br/>fara tva</th>
-                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px' }}>Valoare<br/>totala<br/>fara TVA</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px', color: '#000' }}>Nr.<br/>crt.</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', color: '#000' }}>Denumire produs</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px', color: '#000' }}>U.M.</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '80px', color: '#000' }}>Cantitati</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px', color: '#000' }}>Pret unitar<br/>fara tva</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px', color: '#000' }}>Valoare<br/>totala<br/>fara TVA</th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.map((product: Product, index: number) => (
                     <tr key={index}>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
                         {product.itemNumber}
                       </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'left', fontSize: '13px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'left', fontSize: '13px', color: '#000' }}>
                         {product.productName}
                       </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
                         {product.unitOfMeasurement}
                       </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
                         {product.quantity}
                       </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
                         {product.unitPriceNoVAT.toFixed(2)}
                       </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
                         {product.totalValueNoVAT.toFixed(2)}
                       </td>
                     </tr>
@@ -557,7 +557,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={6} style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', fontWeight: 'bold' }}>
+                    <td colSpan={6} style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: '#000' }}>
                       TOTAL FARA TVA= {products.reduce((sum: number, p: Product) => sum + p.totalValueNoVAT, 0).toFixed(2)} LEI
                     </td>
                   </tr>
