@@ -188,8 +188,8 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
     // State for Theme Colors
     const [themeColors, setThemeColors] = useState({
-      primary: '#1d4ed8',
-      secondary: '#f97316',
+      primary: '#ffffff',
+      secondary: '#ffffff',
       text: '#1f2933',
       bg: '#ffffff',
     })
