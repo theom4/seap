@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
-import type { OfferData, Product } from './types'
+import type { OfferData, Product, TechnicalDetail } from './types'
 import { EditableText } from './components/EditableText'
 import './OfferTemplate.css'
 
@@ -151,21 +151,23 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
   ({ offerData, onGeneratePDF }, ref) => {
     const templateRef = useRef<HTMLDivElement>(null)
     const imageInputRef = useRef<HTMLInputElement>(null)
-    const { offerMetadata: initialMetadata, offerConent: initialContent } = offerData
+    const { offerMetadata: initialMetadata = {} as any, offerConent: initialContent = {} as any } = offerData || {}
 
     // State for main content
-    const [title, setTitle] = useState(initialContent.title)
-    const [subtitle, setSubtitle] = useState(initialContent.subtitle)
-    const [mainMessage, setMainMessage] = useState(initialContent.mainMessage)
-    const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage)
-    const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable)
-    const [productPrice, setProductPrice] = useState(initialContent.productPrice)
-    const [offerDate, setOfferDate] = useState(initialMetadata.offerDate)
-    const [offerReference, setOfferReference] = useState(initialMetadata.offerReference)
+    const [title, setTitle] = useState(initialContent.title || '')
+    const [subtitle, setSubtitle] = useState(initialContent.subtitle || '')
+    const [mainMessage, setMainMessage] = useState(initialContent.mainMessage || '')
+    const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage || '')
+    const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || '')
+    const [productPrice, setProductPrice] = useState(initialContent.productPrice || '')
+    const [offerDate, setOfferDate] = useState(initialMetadata.offerDate || '')
+    const [offerReference, setOfferReference] = useState(initialMetadata.offerReference || '')
     const [productImage, setProductImage] = useState<string | null>(null)
-    const [companyName, setCompanyName] = useState(initialMetadata.companyName)
+    const [companyName, setCompanyName] = useState(initialMetadata.companyName || '')
     const [footerLegal, setFooterLegal] = useState(
-      `${initialMetadata.companyLegalName} | ${initialMetadata.vatNumber} | ${initialMetadata.registrationNumber}`
+      initialMetadata.companyLegalName || initialMetadata.vatNumber || initialMetadata.registrationNumber
+        ? `${initialMetadata.companyLegalName || ''} | ${initialMetadata.vatNumber || ''} | ${initialMetadata.registrationNumber || ''}`
+        : ''
     )
     const [footerAddress, setFooterAddress] = useState('Strada Comerțului Nr. 10, Sector 1, București')
     const [products, setProducts] = useState(initialContent.products || [])
@@ -216,18 +218,20 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       console.log('Initial products:', initialContent.products)
       console.log('Products count:', initialContent.products?.length || 0)
 
-      setTitle(initialContent.title)
-      setSubtitle(initialContent.subtitle)
-      setMainMessage(initialContent.mainMessage)
-      setTechnicalDetailsMessage(initialContent.technicalDetailsMessage)
-      setTechnicalDetailsTable(initialContent.technicalDetailsTable)
-      setProductPrice(initialContent.productPrice)
-      setOfferDate(initialMetadata.offerDate)
-      setOfferReference(initialMetadata.offerReference)
+      setTitle(initialContent.title || '')
+      setSubtitle(initialContent.subtitle || '')
+      setMainMessage(initialContent.mainMessage || '')
+      setTechnicalDetailsMessage(initialContent.technicalDetailsMessage || '')
+      setTechnicalDetailsTable(initialContent.technicalDetailsTable || '')
+      setProductPrice(initialContent.productPrice || '')
+      setOfferDate(initialMetadata.offerDate || '')
+      setOfferReference(initialMetadata.offerReference || '')
       setProductImage(initialContent.productImageUrl || null)
-      setCompanyName(initialMetadata.companyName)
+      setCompanyName(initialMetadata.companyName || '')
       setFooterLegal(
-        `${initialMetadata.companyLegalName} | ${initialMetadata.vatNumber} | ${initialMetadata.registrationNumber}`
+        initialMetadata.companyLegalName || initialMetadata.vatNumber || initialMetadata.registrationNumber
+          ? `${initialMetadata.companyLegalName || ''} | ${initialMetadata.vatNumber || ''} | ${initialMetadata.registrationNumber || ''}`
+          : ''
       )
       setProducts(initialContent.products || [])
     }, [offerData, initialContent, initialMetadata])
@@ -672,7 +676,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           <div className="technical-table-section">
             <table className="technical-table">
               <tbody>
-                {technicalDetailsTable.map((detail, index) => (
+                {technicalDetailsTable.map((detail: TechnicalDetail, index: number) => (
                   <tr key={index}>
                     <td className="table-title">
                       <input

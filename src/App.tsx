@@ -410,20 +410,23 @@ function App() {
           // Merge products into webhook response
           // Assuming the webhook response has one offer per PDF file
           const mergedResponse = (responseData as OfferData[]).map((offer, index) => {
+            // Ensure offerConent exists
+            const offerConent = offer.offerConent || {}
+
             if (index < productsArrays.length && productsArrays[index].length > 0) {
               return {
                 ...offer,
                 offerConent: {
-                  ...offer.offerConent,
+                  ...offerConent,
                   products: productsArrays[index],
                 },
               }
             }
             // No products extracted, create default from title
-            if (!offer.offerConent?.products || offer.offerConent.products.length === 0) {
+            if (!offerConent.products || offerConent.products.length === 0) {
               const defaultProduct = {
                 itemNumber: 1,
-                productName: offer.offerConent?.title || 'Produs',
+                productName: offerConent.title || 'Produs',
                 unitOfMeasurement: 'BUC',
                 quantity: 0,
                 unitPriceNoVAT: 0,
@@ -432,7 +435,7 @@ function App() {
               return {
                 ...offer,
                 offerConent: {
-                  ...offer.offerConent,
+                  ...offerConent,
                   products: [defaultProduct],
                 },
               }
@@ -445,11 +448,12 @@ function App() {
         } else {
           // No PDFs to extract from, but we should still add default products from title
           const enrichedResponse = (responseData as OfferData[]).map((offer) => {
+            const offerConent = offer.offerConent || {}
             // If products don't exist, create a default one from the title
-            if (!offer.offerConent?.products || offer.offerConent.products.length === 0) {
+            if (!offerConent.products || offerConent.products.length === 0) {
               const defaultProduct = {
                 itemNumber: 1,
-                productName: offer.offerConent?.title || 'Produs',
+                productName: offerConent.title || 'Produs',
                 unitOfMeasurement: 'BUC',
                 quantity: 0,
                 unitPriceNoVAT: 0,
@@ -458,7 +462,7 @@ function App() {
               return {
                 ...offer,
                 offerConent: {
-                  ...offer.offerConent,
+                  ...offerConent,
                   products: [defaultProduct],
                 },
               }
@@ -471,10 +475,11 @@ function App() {
         console.error('Error extracting products from PDFs:', productsError)
         // Still set the webhook response even if products extraction fails, but add default products
         const enrichedResponse = (responseData as OfferData[]).map((offer) => {
-          if (!offer.offerConent?.products || offer.offerConent.products.length === 0) {
+          const offerConent = offer.offerConent || {}
+          if (!offerConent.products || offerConent.products.length === 0) {
             const defaultProduct = {
               itemNumber: 1,
-              productName: offer.offerConent?.title || 'Produs',
+              productName: offerConent.title || 'Produs',
               unitOfMeasurement: 'BUC',
               quantity: 0,
               unitPriceNoVAT: 0,
@@ -483,7 +488,7 @@ function App() {
             return {
               ...offer,
               offerConent: {
-                ...offer.offerConent,
+                ...offerConent,
                 products: [defaultProduct],
               },
             }
