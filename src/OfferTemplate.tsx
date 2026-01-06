@@ -24,32 +24,32 @@ function getProductsTableHTML(products: Product[]) {
 
   const productsRows = products.map(product => `
     <tr>
-      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt;">${product.itemNumber}</td>
-      <td style="border: 1px solid #000; padding: 8px; font-size: 10pt;"><strong>${product.productName}</strong></td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt;">${product.unitOfMeasurement}</td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt;">${product.quantity}</td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt;">${typeof product.unitPriceNoVAT === 'number' ? product.unitPriceNoVAT.toFixed(2) : product.unitPriceNoVAT}</td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt;">${typeof product.totalValueNoVAT === 'number' ? product.totalValueNoVAT.toFixed(2) : product.totalValueNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${product.itemNumber}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: left; font-size: 11pt; font-family: Arial, sans-serif; color: #000;"><strong>${product.productName}</strong></td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${product.unitOfMeasurement}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${product.quantity}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: right; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${typeof product.unitPriceNoVAT === 'number' ? product.unitPriceNoVAT.toFixed(2) : product.unitPriceNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: right; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${typeof product.totalValueNoVAT === 'number' ? product.totalValueNoVAT.toFixed(2) : product.totalValueNoVAT}</td>
     </tr>
   `).join('')
 
   return `
-    <div style="font-family: Arial, sans-serif; color: #000; background: white; padding: 20mm 15mm;">
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+    <div style="font-family: Arial, sans-serif; color: #000; background: white; padding: 20mm 15mm; box-sizing: border-box;">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed;">
         <thead>
           <tr>
-            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Nr.<br/>crt.</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Denumire produs</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">U.M.</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Cantitati</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Pret unitar<br/>fara tva</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Valoare<br/>totala<br/>fara TVA</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Nr.<br/>crt.</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Denumire produs</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">U.M.</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Cantitati</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Pret unitar<br/>fara tva</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Valoare<br/>totala<br/>fara TVA</th>
           </tr>
         </thead>
         <tbody>
           ${productsRows}
           <tr>
-            <td colspan="6" style="border: 1px solid #000; padding: 12px; text-align: right; font-weight: bold; font-size: 11pt;">
+            <td colspan="6" style="border: 1px solid #000; padding: 12px; text-align: right; font-weight: bold; font-size: 11pt; font-family: Arial, sans-serif; color: #000; background: #f5f5f5;">
               TOTAL FARA TVA= ${totalNoVAT.toFixed(2)} LEI
             </td>
           </tr>
@@ -312,23 +312,32 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
         // --- PAGE 1: Annex (Formular de Oferta) - NOW FIRST ---
         const annexContainer = document.createElement('div')
-        annexContainer.style.position = 'absolute'
-        annexContainer.style.left = '-9999px'
+        annexContainer.style.position = 'fixed'
+        annexContainer.style.left = '0'
         annexContainer.style.top = '0'
         annexContainer.style.width = '210mm'
+        annexContainer.style.minHeight = '297mm'
         annexContainer.style.backgroundColor = 'white'
         annexContainer.style.padding = '20mm'
+        annexContainer.style.zIndex = '9999'
+        annexContainer.style.visibility = 'hidden'
 
         annexContainer.innerHTML = getAnnexHTML()
         document.body.appendChild(annexContainer)
 
-        await new Promise((resolve) => setTimeout(resolve, 200))
+        await new Promise((resolve) => setTimeout(resolve, 500))
+
+        annexContainer.style.visibility = 'visible'
 
         const annexCanvas = await html2canvas(annexContainer, {
           scale: 2,
           logging: false,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          windowWidth: annexContainer.scrollWidth,
+          windowHeight: annexContainer.scrollHeight
         })
+
+        annexContainer.style.visibility = 'hidden'
 
         const annexImgHeight = (annexCanvas.height * pdfWidth) / annexCanvas.width
         const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.8)
@@ -341,24 +350,47 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           pdf.addPage()
 
           const productsContainer = document.createElement('div')
-          productsContainer.style.position = 'absolute'
-          productsContainer.style.left = '-9999px'
+          productsContainer.style.position = 'fixed'
+          productsContainer.style.left = '0'
           productsContainer.style.top = '0'
           productsContainer.style.width = '210mm'
+          productsContainer.style.minHeight = '297mm'
           productsContainer.style.backgroundColor = 'white'
+          productsContainer.style.zIndex = '9999'
+          productsContainer.style.visibility = 'hidden'
 
-          productsContainer.innerHTML = getProductsTableHTML(products)
+          const productsHTML = getProductsTableHTML(products)
+          console.log('Products HTML being inserted:', productsHTML.substring(0, 800))
+
+          productsContainer.innerHTML = productsHTML
           document.body.appendChild(productsContainer)
 
-          await new Promise((resolve) => setTimeout(resolve, 200))
+          await new Promise((resolve) => setTimeout(resolve, 500))
 
-          console.log('Capturing products table, HTML:', productsContainer.innerHTML.substring(0, 500))
+          const table = productsContainer.querySelector('table')
+          const thead = productsContainer.querySelector('thead')
+          const theadRows = thead ? thead.querySelectorAll('tr') : []
+          console.log('Table found:', !!table)
+          console.log('Thead found:', !!thead)
+          console.log('Thead rows:', theadRows.length)
+          if (theadRows.length > 0) {
+            console.log('First thead row HTML:', theadRows[0].innerHTML.substring(0, 200))
+          }
+          console.log('Container dimensions:', productsContainer.offsetWidth, 'x', productsContainer.offsetHeight)
+
+          productsContainer.style.visibility = 'visible'
 
           const productsCanvas = await html2canvas(productsContainer, {
             scale: 2,
             logging: true,
-            backgroundColor: '#ffffff'
+            backgroundColor: '#ffffff',
+            windowWidth: productsContainer.scrollWidth,
+            windowHeight: productsContainer.scrollHeight
           })
+
+          console.log('Canvas dimensions:', productsCanvas.width, 'x', productsCanvas.height)
+
+          productsContainer.style.visibility = 'hidden'
 
           const productsImgHeight = (productsCanvas.height * pdfWidth) / productsCanvas.width
           const productsImgData = productsCanvas.toDataURL('image/jpeg', 0.8)
