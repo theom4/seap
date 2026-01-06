@@ -734,3 +734,18 @@
     margin: 0 auto;
   }
 }
+
+.annex-preview {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 2.5rem 2.75rem;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  font-size: 11pt;
+  color: #000;
+  page-break-before: always;
+  margin-top: 1rem;
+}
