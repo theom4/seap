@@ -422,15 +422,24 @@ function App() {
                 },
               }
             }
-            // No products extracted, create default from title
+            // No products extracted, create default from title and productPrice
             if (!offerConent.products || offerConent.products.length === 0) {
+              // Try to parse productPrice if available (format: "6,00 RON" or "6.00 RON")
+              let parsedPrice = 0
+              if (offerConent.productPrice) {
+                const priceMatch = offerConent.productPrice.match(/[\d,\.]+/)
+                if (priceMatch) {
+                  parsedPrice = parseFloat(priceMatch[0].replace(',', '.'))
+                }
+              }
+
               const defaultProduct = {
                 itemNumber: 1,
                 productName: offerConent.title || 'Produs',
                 unitOfMeasurement: 'BUC',
-                quantity: 0,
-                unitPriceNoVAT: 0,
-                totalValueNoVAT: 0,
+                quantity: 1,
+                unitPriceNoVAT: parsedPrice,
+                totalValueNoVAT: parsedPrice,
               }
               return {
                 ...offer,
@@ -446,18 +455,27 @@ function App() {
           setWebhookResponse(mergedResponse)
           console.log('Products successfully merged with webhook response')
         } else {
-          // No PDFs to extract from, but we should still add default products from title
+          // No PDFs to extract from, but we should still add default products from title and productPrice
           const enrichedResponse = (responseData as OfferData[]).map((offer) => {
             const offerConent = offer.offerConent || {}
-            // If products don't exist, create a default one from the title
+            // If products don't exist, create a default one from the title and productPrice
             if (!offerConent.products || offerConent.products.length === 0) {
+              // Try to parse productPrice if available (format: "6,00 RON" or "6.00 RON")
+              let parsedPrice = 0
+              if (offerConent.productPrice) {
+                const priceMatch = offerConent.productPrice.match(/[\d,\.]+/)
+                if (priceMatch) {
+                  parsedPrice = parseFloat(priceMatch[0].replace(',', '.'))
+                }
+              }
+
               const defaultProduct = {
                 itemNumber: 1,
                 productName: offerConent.title || 'Produs',
                 unitOfMeasurement: 'BUC',
-                quantity: 0,
-                unitPriceNoVAT: 0,
-                totalValueNoVAT: 0,
+                quantity: 1,
+                unitPriceNoVAT: parsedPrice,
+                totalValueNoVAT: parsedPrice,
               }
               return {
                 ...offer,
@@ -477,13 +495,22 @@ function App() {
         const enrichedResponse = (responseData as OfferData[]).map((offer) => {
           const offerConent = offer.offerConent || {}
           if (!offerConent.products || offerConent.products.length === 0) {
+            // Try to parse productPrice if available (format: "6,00 RON" or "6.00 RON")
+            let parsedPrice = 0
+            if (offerConent.productPrice) {
+              const priceMatch = offerConent.productPrice.match(/[\d,\.]+/)
+              if (priceMatch) {
+                parsedPrice = parseFloat(priceMatch[0].replace(',', '.'))
+              }
+            }
+
             const defaultProduct = {
               itemNumber: 1,
               productName: offerConent.title || 'Produs',
               unitOfMeasurement: 'BUC',
-              quantity: 0,
-              unitPriceNoVAT: 0,
-              totalValueNoVAT: 0,
+              quantity: 1,
+              unitPriceNoVAT: parsedPrice,
+              totalValueNoVAT: parsedPrice,
             }
             return {
               ...offer,
