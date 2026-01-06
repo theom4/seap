@@ -714,29 +714,29 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           {/* Products Editor - NOT included in PDF, only for editing */}
           <div className="products-editor-section" data-html2canvas-ignore="true" style={{ marginTop: '30px', padding: '20px', border: '2px dashed var(--theme-primary)', borderRadius: '8px', backgroundColor: 'rgba(29, 78, 216, 0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h4 style={{ margin: 0, color: 'var(--theme-primary)', fontSize: '18px' }}>Products Table Editor</h4>
+              <h4 style={{ margin: 0, color: 'var(--theme-primary)', fontSize: '18px' }}>Editor Tabel Produse</h4>
               <button
                 onClick={addProduct}
                 style={{ padding: '8px 16px', backgroundColor: 'var(--theme-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
               >
-                + Add Product
+                + Adaugă Produs
               </button>
             </div>
             <p style={{ marginBottom: '15px', fontSize: '13px', color: '#666' }}>
-              Products added here will appear in a separate page between the main offer and the annex
+              Produsele adăugate aici vor apărea într-o pagină separată între oferta principală și anexă
             </p>
 
             {products.length > 0 ? (
               <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', fontSize: '12px' }}>
                 <thead>
                   <tr>
-                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '40px' }}>Nr.</th>
-                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5' }}>Product Name</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '40px' }}>Nr.<br/>crt.</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5' }}>Denumire Produs</th>
                     <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '80px' }}>U.M.</th>
-                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '80px' }}>Qty</th>
-                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '100px' }}>Unit Price</th>
-                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '100px' }}>Total</th>
-                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '60px' }}>Actions</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '80px' }}>Cantități</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '120px' }}>Pret unitar<br/>fara tva</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '120px' }}>Valoare<br/>totala<br/>fara TVA</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '60px' }}>Acțiuni</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -749,7 +749,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                           value={product.productName}
                           onChange={(e) => handleProductFieldChange(index, 'productName', e.target.value)}
                           style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '3px' }}
-                          placeholder="Enter product name"
+                          placeholder="Introduceți denumirea produsului"
                         />
                       </td>
                       <td style={{ border: '1px solid #ddd', padding: '6px' }}>
@@ -794,7 +794,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                           onClick={() => removeProduct(index)}
                           style={{ padding: '4px 8px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '12px' }}
                         >
-                          Remove
+                          Șterge
                         </button>
                       </td>
                     </tr>
@@ -811,7 +811,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               </table>
             ) : (
               <p style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-                No products added yet. Click "Add Product" to start.
+                Nu există produse adăugate încă. Faceți clic pe "Adaugă Produs" pentru a începe.
               </p>
             )}
           </div>
