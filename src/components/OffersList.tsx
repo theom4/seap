@@ -3,6 +3,7 @@ import JSZip from 'jszip'
 import { OfferTemplate, type OfferTemplateRef } from '../OfferTemplate'
 import type { WebhookResponse } from '../types'
 import { getAllOffers, getOfferKey } from '../utils/webhookUtils'
+import { mergePDFs } from '../utils/pdfMerge'
 
 interface OffersListProps {
   webhookResponse: WebhookResponse
@@ -13,6 +14,7 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
   const offers = useMemo(() => getAllOffers(webhookResponse), [webhookResponse])
   const templateRefs = useRef<(OfferTemplateRef | null)[]>([])
   const [isDownloadingAll, setIsDownloadingAll] = useState(false)
+  const [isMergingAll, setIsMergingAll] = useState(false)
   const [activeOfferIndex, setActiveOfferIndex] = useState<number | null>(null)
 
   if (offers.length === 0) {
@@ -103,6 +105,55 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
     }
   }
 
+  const handleMergeAll = async () => {
+    if (isMergingAll) return
+
+    setIsMergingAll(true)
+    try {
+      const pdfBlobs: Blob[] = []
+      const errors: string[] = []
+
+      for (let i = 0; i < templateRefs.current.length; i++) {
+        const ref = templateRefs.current[i]
+        if (ref) {
+          try {
+            const pdfBlob = await ref.generatePDF()
+            pdfBlobs.push(pdfBlob)
+          } catch (error) {
+            const errorMsg = `Eroare la generarea PDF-ului pentru oferta ${i + 1}`
+            console.error(errorMsg, error)
+            errors.push(errorMsg)
+          }
+        }
+      }
+
+      if (pdfBlobs.length === 0) {
+        alert('Nu s-au putut genera PDF-uri. Vă rugăm să încercați din nou.')
+        return
+      }
+
+      const mergedPdfBlob = await mergePDFs(pdfBlobs)
+
+      const url = URL.createObjectURL(mergedPdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `oferte_unite_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      if (errors.length > 0) {
+        alert(`PDF-urile au fost unite cu succes. ${errors.length} PDF-uri au eșuat:\n${errors.join('\n')}`)
+      }
+    } catch (error) {
+      console.error('Error merging PDFs:', error)
+      alert('A apărut o eroare la unirea PDF-urilor. Vă rugăm să încercați din nou.')
+    } finally {
+      setIsMergingAll(false)
+    }
+  }
+
   return (
     <div className="relative">
       {/* Header and Controls */}
@@ -117,25 +168,46 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
         </div>
         <div className="flex items-center space-x-3">
           {offers.length > 1 && (
-            <button
-              onClick={handleDownloadAll}
-              disabled={isDownloadingAll}
-              className="px-4 py-2 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:cursor-not-allowed text-sm font-bold transition-colors shadow-sm flex items-center space-x-2"
-            >
-              {isDownloadingAll ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Se generează...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span>Descarcă Toate (.ZIP)</span>
-                </>
-              )}
-            </button>
+            <>
+              <button
+                onClick={handleMergeAll}
+                disabled={isMergingAll}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-sm font-bold transition-colors shadow-sm flex items-center space-x-2"
+              >
+                {isMergingAll ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Se unesc...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Unește Toate (PDF)</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll}
+                className="px-4 py-2 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:cursor-not-allowed text-sm font-bold transition-colors shadow-sm flex items-center space-x-2"
+              >
+                {isDownloadingAll ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Se generează...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    <span>Descarcă Separate (.ZIP)</span>
+                  </>
+                )}
+              </button>
+            </>
           )}
           <button
             onClick={onClear}
