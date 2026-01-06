@@ -13,6 +13,15 @@ export interface TechnicalDetail {
   itemDescription: string
 }
 
+export interface Product {
+  itemNumber: number
+  productName: string
+  unitOfMeasurement: string
+  quantity: number
+  unitPriceNoVAT: number
+  totalValueNoVAT: number
+}
+
 export interface OfferContent {
   title: string
   subtitle: string
@@ -22,6 +31,7 @@ export interface OfferContent {
   productPrice: string
   productImageUrl?: string // Optional: URL to product image (can be used instead of manual upload)
   confidenceMessage?: string // Optional: Warning message if confidence is low
+  products?: Product[] // Optional: List of products for the products table page
 }
 
 export interface OfferData {

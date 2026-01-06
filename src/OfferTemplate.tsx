@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
-import type { OfferData } from './types'
+import type { OfferData, Product } from './types'
 import { EditableText } from './components/EditableText'
 import './OfferTemplate.css'
 
@@ -14,7 +14,66 @@ export interface OfferTemplateRef {
   generatePDF: () => Promise<Blob>
 }
 
-// --- 1. ANNEX CONTENT (The "AS GREEN LAND" text) ---
+// --- 1. PRODUCTS TABLE PAGE ---
+function getProductsTableHTML(products: Product[]) {
+  if (!products || products.length === 0) {
+    return ''
+  }
+
+  const totalNoVAT = products.reduce((sum, p) => sum + (p.totalValueNoVAT || 0), 0)
+
+  const productsRows = products.map(product => `
+    <tr>
+      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt;">${product.itemNumber}</td>
+      <td style="border: 1px solid #000; padding: 8px; font-size: 10pt;"><strong>${product.productName}</strong></td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt;">${product.unitOfMeasurement}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt;">${product.quantity}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt;">${product.unitPriceNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt;">${product.totalValueNoVAT}</td>
+    </tr>
+  `).join('')
+
+  return `
+    <div style="font-family: Arial, sans-serif; color: #000; background: white; padding: 20mm 15mm;">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Nr.<br/>crt.</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Denumire produs</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">U.M.</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Cantitati</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Pret unitar<br/>fara tva</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f0f0f0; text-align: center; font-size: 10pt;">Valoare<br/>totala<br/>fara TVA</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${productsRows}
+          <tr>
+            <td colspan="6" style="border: 1px solid #000; padding: 12px; text-align: right; font-weight: bold; font-size: 11pt;">
+              TOTAL FARA TVA= ${totalNoVAT} LEI
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+        <div style="flex: 1;">
+          <p style="margin: 0 0 10px 0; font-size: 11pt;"><strong>OFERTANTUL</strong></p>
+          <p style="margin: 0 0 5px 0; font-size: 11pt;"><strong>S.C. AS GREEN LAND S.R.L</strong></p>
+          <p style="margin: 0; font-size: 10pt; font-style: italic;">(denumirea/numele)</p>
+        </div>
+        <div style="flex: 1; text-align: right;">
+          <p style="margin: 0 0 5px 0; font-size: 10pt;">Preturile Nu Contin TVA</p>
+          <p style="margin: 0 0 5px 0; font-size: 10pt;">Transportul este inclus in pret</p>
+          <p style="margin: 0 0 5px 0; font-size: 10pt;">Plata prin cont de Trezorerie</p>
+          <p style="margin: 0; font-size: 10pt;">Termen de plata stabilt la semnarea contractului</p>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+// --- 2. ANNEX CONTENT (The "AS GREEN LAND" text) ---
 function getAnnexHTML() {
   return `
     <div style="font-family: Arial, sans-serif; color: #000; line-height: 1.6; font-size: 11pt; background: white; padding: 15mm 10mm;">
@@ -109,6 +168,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       `${initialMetadata.companyLegalName} | ${initialMetadata.vatNumber} | ${initialMetadata.registrationNumber}`
     )
     const [footerAddress, setFooterAddress] = useState('Strada Comerțului Nr. 10, Sector 1, București')
+    const [products, setProducts] = useState(initialContent.products || [])
 
     // State for "Static" labels that are now editable
     const [customText, setCustomText] = useState({
@@ -159,6 +219,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setFooterLegal(
         `${initialMetadata.companyLegalName} | ${initialMetadata.vatNumber} | ${initialMetadata.registrationNumber}`
       )
+      setProducts(initialContent.products || [])
     }, [offerData, initialContent, initialMetadata])
 
     const updateCustomText = (key: keyof typeof customText, value: string) => {
@@ -218,6 +279,36 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setTechnicalDetailsTable(updated)
     }
 
+    const handleProductFieldChange = (
+      index: number,
+      field: keyof typeof products[0],
+      value: string | number
+    ) => {
+      const updated = [...products]
+      updated[index] = { ...updated[index], [field]: value }
+      setProducts(updated)
+    }
+
+    const addProduct = () => {
+      setProducts([
+        ...products,
+        {
+          itemNumber: products.length + 1,
+          productName: '',
+          unitOfMeasurement: 'BUC',
+          quantity: 1,
+          unitPriceNoVAT: 0,
+          totalValueNoVAT: 0,
+        },
+      ])
+    }
+
+    const removeProduct = (index: number) => {
+      const updated = products.filter((_: Product, i: number) => i !== index)
+      const renumbered = updated.map((p: Product, i: number) => ({ ...p, itemNumber: i + 1 }))
+      setProducts(renumbered)
+    }
+
     // --- 2. NEW PDF GENERATION LOGIC (Merged) ---
     const generateFinalPDF = async (): Promise<Blob> => {
       if (!templateRef.current) throw new Error('Template ref not found')
@@ -238,7 +329,34 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight)
 
-        // --- PAGE 2: Annex (Formular de Oferta) ---
+        // --- PAGE 2: Products Table (if products exist) ---
+        if (products && products.length > 0) {
+          pdf.addPage()
+
+          const productsContainer = document.createElement('div')
+          productsContainer.style.position = 'absolute'
+          productsContainer.style.left = '-9999px'
+          productsContainer.style.top = '0'
+          productsContainer.style.width = '210mm'
+          productsContainer.style.backgroundColor = 'white'
+
+          productsContainer.innerHTML = getProductsTableHTML(products)
+          document.body.appendChild(productsContainer)
+
+          const productsCanvas = await html2canvas(productsContainer, {
+            scale: 2,
+            logging: false,
+            backgroundColor: '#ffffff'
+          })
+
+          const productsImgHeight = (productsCanvas.height * pdfWidth) / productsCanvas.width
+          const productsImgData = productsCanvas.toDataURL('image/jpeg', 0.8)
+
+          pdf.addImage(productsImgData, 'JPEG', 0, 0, pdfWidth, productsImgHeight)
+          document.body.removeChild(productsContainer)
+        }
+
+        // --- PAGE 3: Annex (Formular de Oferta) ---
         pdf.addPage()
 
         const annexContainer = document.createElement('div')
@@ -248,7 +366,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         annexContainer.style.width = '210mm'
         annexContainer.style.backgroundColor = 'white'
         annexContainer.style.padding = '20mm'
-        
+
         annexContainer.innerHTML = getAnnexHTML()
         document.body.appendChild(annexContainer)
 
@@ -260,7 +378,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
         const annexImgHeight = (annexCanvas.height * pdfWidth) / annexCanvas.width
         const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.8)
-        
+
         pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, annexImgHeight)
         document.body.removeChild(annexContainer)
 
@@ -591,6 +709,111 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               value={customText.validityText}
               onChange={(val) => updateCustomText('validityText', val)}
             />
+          </div>
+
+          {/* Products Editor - NOT included in PDF, only for editing */}
+          <div className="products-editor-section" data-html2canvas-ignore="true" style={{ marginTop: '30px', padding: '20px', border: '2px dashed var(--theme-primary)', borderRadius: '8px', backgroundColor: 'rgba(29, 78, 216, 0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h4 style={{ margin: 0, color: 'var(--theme-primary)', fontSize: '18px' }}>Products Table Editor</h4>
+              <button
+                onClick={addProduct}
+                style={{ padding: '8px 16px', backgroundColor: 'var(--theme-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
+              >
+                + Add Product
+              </button>
+            </div>
+            <p style={{ marginBottom: '15px', fontSize: '13px', color: '#666' }}>
+              Products added here will appear in a separate page between the main offer and the annex
+            </p>
+
+            {products.length > 0 ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', fontSize: '12px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '40px' }}>Nr.</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5' }}>Product Name</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '80px' }}>U.M.</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '80px' }}>Qty</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '100px' }}>Unit Price</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '100px' }}>Total</th>
+                    <th style={{ border: '1px solid #ddd', padding: '8px', backgroundColor: '#f5f5f5', width: '60px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product: Product, index: number) => (
+                    <tr key={index}>
+                      <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{product.itemNumber}</td>
+                      <td style={{ border: '1px solid #ddd', padding: '6px' }}>
+                        <input
+                          type="text"
+                          value={product.productName}
+                          onChange={(e) => handleProductFieldChange(index, 'productName', e.target.value)}
+                          style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '3px' }}
+                          placeholder="Enter product name"
+                        />
+                      </td>
+                      <td style={{ border: '1px solid #ddd', padding: '6px' }}>
+                        <input
+                          type="text"
+                          value={product.unitOfMeasurement}
+                          onChange={(e) => handleProductFieldChange(index, 'unitOfMeasurement', e.target.value)}
+                          style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '3px' }}
+                          placeholder="BUC"
+                        />
+                      </td>
+                      <td style={{ border: '1px solid #ddd', padding: '6px' }}>
+                        <input
+                          type="number"
+                          value={product.quantity}
+                          onChange={(e) => {
+                            const qty = parseFloat(e.target.value) || 0
+                            handleProductFieldChange(index, 'quantity', qty)
+                            handleProductFieldChange(index, 'totalValueNoVAT', qty * product.unitPriceNoVAT)
+                          }}
+                          style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '3px' }}
+                        />
+                      </td>
+                      <td style={{ border: '1px solid #ddd', padding: '6px' }}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={product.unitPriceNoVAT}
+                          onChange={(e) => {
+                            const price = parseFloat(e.target.value) || 0
+                            handleProductFieldChange(index, 'unitPriceNoVAT', price)
+                            handleProductFieldChange(index, 'totalValueNoVAT', product.quantity * price)
+                          }}
+                          style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '3px' }}
+                        />
+                      </td>
+                      <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'right', fontWeight: 'bold' }}>
+                        {product.totalValueNoVAT.toFixed(2)}
+                      </td>
+                      <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => removeProduct(index)}
+                          style={{ padding: '4px 8px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td colSpan={5} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>
+                      TOTAL FARA TVA:
+                    </td>
+                    <td colSpan={2} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>
+                      {products.reduce((sum: number, p: Product) => sum + p.totalValueNoVAT, 0).toFixed(2)} LEI
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                No products added yet. Click "Add Product" to start.
+              </p>
+            )}
           </div>
 
           {/* Footer */}
