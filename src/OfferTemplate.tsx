@@ -206,6 +206,11 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
     // Reset state when offerData changes
     useEffect(() => {
+      // Debug: Log products from initial content
+      console.log('Resetting offer template state')
+      console.log('Initial products:', initialContent.products)
+      console.log('Products count:', initialContent.products?.length || 0)
+
       setTitle(initialContent.title)
       setSubtitle(initialContent.subtitle)
       setMainMessage(initialContent.mainMessage)
@@ -312,6 +317,10 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     // --- 2. NEW PDF GENERATION LOGIC (Merged) ---
     const generateFinalPDF = async (): Promise<Blob> => {
       if (!templateRef.current) throw new Error('Template ref not found')
+
+      // Debug: Log products state
+      console.log('Generating PDF with products:', products)
+      console.log('Products count:', products.length)
 
       try {
         const pdf = new jsPDF('p', 'mm', 'a4')
@@ -480,6 +489,14 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
         {/* Annex Page Preview - SHOWN FIRST */}
         <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
+
+        {/* Products Table Preview - Show what will appear in PDF */}
+        {products.length > 0 && (
+          <div className="products-table-preview" style={{ marginTop: '30px', padding: '20px', border: '2px solid #4CAF50', borderRadius: '8px', backgroundColor: '#f9fff9' }}>
+            <h3 style={{ margin: '0 0 15px 0', color: '#4CAF50', fontSize: '18px', textAlign: 'center' }}>Preview Tabel Produse (va apărea în PDF)</h3>
+            <div dangerouslySetInnerHTML={{ __html: getProductsTableHTML(products) }}></div>
+          </div>
+        )}
 
         <div ref={templateRef} className="offer-template">
           {/* Header */}
@@ -718,7 +735,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           {/* Products Editor - NOT included in PDF, only for editing */}
           <div className="products-editor-section" data-html2canvas-ignore="true" style={{ marginTop: '30px', padding: '20px', border: '2px dashed var(--theme-primary)', borderRadius: '8px', backgroundColor: 'rgba(29, 78, 216, 0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h4 style={{ margin: 0, color: 'var(--theme-primary)', fontSize: '18px' }}>Editor Tabel Produse</h4>
+              <h4 style={{ margin: 0, color: 'var(--theme-primary)', fontSize: '18px' }}>Editor Tabel Produse ({products.length} produse)</h4>
               <button
                 onClick={addProduct}
                 style={{ padding: '8px 16px', backgroundColor: 'var(--theme-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
@@ -727,7 +744,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               </button>
             </div>
             <p style={{ marginBottom: '15px', fontSize: '13px', color: '#666' }}>
-              Produsele adăugate aici vor apărea într-o pagină separată între oferta principală și anexă
+              Produsele adăugate aici vor apărea într-o pagină separată în PDF-ul generat (între anexă și oferta principală)
             </p>
 
             {products.length > 0 ? (
@@ -814,9 +831,40 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 </tbody>
               </table>
             ) : (
-              <p style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-                Nu există produse adăugate încă. Faceți clic pe "Adaugă Produs" pentru a începe.
-              </p>
+              <div style={{ textAlign: 'center', padding: '30px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '6px' }}>
+                <p style={{ margin: '0 0 15px 0', color: '#856404', fontWeight: 'bold', fontSize: '14px' }}>
+                  ⚠️ Nu există produse adăugate încă
+                </p>
+                <p style={{ margin: '0 0 20px 0', color: '#856404', fontSize: '13px' }}>
+                  Tabelul de produse va fi gol în PDF-ul generat.<br/>
+                  Faceți clic pe "+ Adaugă Produs" pentru a adăuga produse manual.
+                </p>
+                <button
+                  onClick={() => {
+                    setProducts([
+                      {
+                        itemNumber: 1,
+                        productName: 'Produs exemplu 1',
+                        unitOfMeasurement: 'BUC',
+                        quantity: 10,
+                        unitPriceNoVAT: 100,
+                        totalValueNoVAT: 1000,
+                      },
+                      {
+                        itemNumber: 2,
+                        productName: 'Produs exemplu 2',
+                        unitOfMeasurement: 'BUC',
+                        quantity: 5,
+                        unitPriceNoVAT: 200,
+                        totalValueNoVAT: 1000,
+                      },
+                    ])
+                  }}
+                  style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                >
+                  Adaugă Produse Exemplu
+                </button>
+              </div>
             )}
           </div>
 
