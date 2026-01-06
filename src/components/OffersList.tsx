@@ -85,7 +85,7 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
       if (pdfBlobs.length > 1) {
         try {
           const mergedPdfBlob = await mergePDFs(pdfBlobs)
-          zip.file('_TOATE_OFERTELE_UNITE.pdf', mergedPdfBlob)
+          zip.file('OFERTA_FINALA.pdf', mergedPdfBlob)
         } catch (error) {
           console.error('Error merging PDFs:', error)
           errors.push('Eroare la unirea PDF-urilor')
