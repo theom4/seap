@@ -159,7 +159,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [mainMessage, setMainMessage] = useState(initialContent.mainMessage || '')
     const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage || '')
     const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || [])
-    const [productPrice, setProductPrice] = useState(initialContent.productPrice || '')
     const [offerDate, setOfferDate] = useState(initialMetadata.offerDate || '')
     const [offerReference, setOfferReference] = useState(initialMetadata.offerReference || '')
     const [productImage, setProductImage] = useState<string | null>(null)
@@ -223,7 +222,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setMainMessage(initialContent.mainMessage || '')
       setTechnicalDetailsMessage(initialContent.technicalDetailsMessage || '')
       setTechnicalDetailsTable(initialContent.technicalDetailsTable || [])
-      setProductPrice(initialContent.productPrice || '')
       setOfferDate(initialMetadata.offerDate || '')
       setOfferReference(initialMetadata.offerReference || '')
       setProductImage(initialContent.productImageUrl || null)
@@ -759,34 +757,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* Special Offer Price */}
-          <div className="special-offer-section">
-            <div className="special-offer-box">
-              <div className="offer-price-left">
-                <EditableText
-                  tagName="p"
-                  className="offer-price-label"
-                  value={customText.specialPriceLabel}
-                  onChange={(val) => updateCustomText('specialPriceLabel', val)}
-                />
-                <EditableText
-                  tagName="p"
-                  className="offer-price-note"
-                  value={customText.priceNote}
-                  onChange={(val) => updateCustomText('priceNote', val)}
-                />
-              </div>
-              <div className="offer-price-right">
-                <input
-                  type="text"
-                  value={productPrice}
-                  onChange={(e) => setProductPrice(e.target.value)}
-                  className="editable-price-input"
-                />
-              </div>
-            </div>
           </div>
 
           {/* Validity Conditions */}
