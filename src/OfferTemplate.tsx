@@ -158,7 +158,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [subtitle, setSubtitle] = useState(initialContent.subtitle || '')
     const [mainMessage, setMainMessage] = useState(initialContent.mainMessage || '')
     const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage || '')
-    const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || '')
+    const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || [])
     const [productPrice, setProductPrice] = useState(initialContent.productPrice || '')
     const [offerDate, setOfferDate] = useState(initialMetadata.offerDate || '')
     const [offerReference, setOfferReference] = useState(initialMetadata.offerReference || '')
@@ -222,7 +222,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setSubtitle(initialContent.subtitle || '')
       setMainMessage(initialContent.mainMessage || '')
       setTechnicalDetailsMessage(initialContent.technicalDetailsMessage || '')
-      setTechnicalDetailsTable(initialContent.technicalDetailsTable || '')
+      setTechnicalDetailsTable(initialContent.technicalDetailsTable || [])
       setProductPrice(initialContent.productPrice || '')
       setOfferDate(initialMetadata.offerDate || '')
       setOfferReference(initialMetadata.offerReference || '')
@@ -676,7 +676,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           <div className="technical-table-section">
             <table className="technical-table">
               <tbody>
-                {technicalDetailsTable.map((detail: TechnicalDetail, index: number) => (
+                {Array.isArray(technicalDetailsTable) && technicalDetailsTable.map((detail: TechnicalDetail, index: number) => (
                   <tr key={index}>
                     <td className="table-title">
                       <input
@@ -763,7 +763,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               Produsele adăugate aici vor apărea într-o pagină separată în PDF-ul generat (între anexă și oferta principală)
             </p>
 
-            {products.length > 0 ? (
+            {Array.isArray(products) && products.length > 0 ? (
               <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', fontSize: '12px' }}>
                 <thead>
                   <tr>
