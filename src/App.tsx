@@ -314,7 +314,7 @@ function App() {
       let response: any;
       // Send payload in request
       try {
-        response = await fetch('https://n8n.voisero.info/webhook/seap-test', {
+        response = await fetch('https://n8n.voisero.info/webhook-test/seap-test', {
           method: 'POST',
           signal: controller.signal,
           headers: {
