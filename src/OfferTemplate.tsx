@@ -293,6 +293,55 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setTechnicalDetailsTable(updated)
     }
 
+    const handleProductFieldChange = (
+      index: number,
+      field: keyof Product,
+      value: string | number
+    ) => {
+      const updated = [...products]
+      const updatedProduct = { ...updated[index] }
+
+      if (field === 'itemNumber') {
+        updatedProduct.itemNumber = typeof value === 'string' ? parseInt(value) || 0 : value
+      } else if (field === 'productName') {
+        updatedProduct.productName = value.toString()
+      } else if (field === 'unitOfMeasurement') {
+        updatedProduct.unitOfMeasurement = value.toString()
+      } else if (field === 'quantity') {
+        updatedProduct.quantity = typeof value === 'string' ? parseFloat(value) || 0 : value
+        updatedProduct.totalValueNoVAT = updatedProduct.quantity * updatedProduct.unitPriceNoVAT
+      } else if (field === 'unitPriceNoVAT') {
+        updatedProduct.unitPriceNoVAT = typeof value === 'string' ? parseFloat(value) || 0 : value
+        updatedProduct.totalValueNoVAT = updatedProduct.quantity * updatedProduct.unitPriceNoVAT
+      } else if (field === 'totalValueNoVAT') {
+        updatedProduct.totalValueNoVAT = typeof value === 'string' ? parseFloat(value) || 0 : value
+      }
+
+      updated[index] = updatedProduct
+      setProducts(updated)
+    }
+
+    const handleAddProduct = () => {
+      const newProduct: Product = {
+        itemNumber: products.length + 1,
+        productName: 'Produs nou',
+        unitOfMeasurement: 'BUC',
+        quantity: 1,
+        unitPriceNoVAT: 0,
+        totalValueNoVAT: 0,
+      }
+      setProducts([...products, newProduct])
+    }
+
+    const handleRemoveProduct = (index: number) => {
+      const updated = products.filter((_: Product, i: number) => i !== index)
+      // Re-number the items
+      updated.forEach((product: Product, i: number) => {
+        product.itemNumber = i + 1
+      })
+      setProducts(updated)
+    }
+
     // --- 2. NEW PDF GENERATION LOGIC (Merged) ---
     const generateFinalPDF = async (): Promise<Blob> => {
       if (!templateRef.current) throw new Error('Template ref not found')
@@ -469,17 +518,130 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         {/* Annex Page Preview - SHOWN FIRST */}
         <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
 
-        {/* Products Table Preview - Show what will appear in PDF */}
-        <div className="products-table-preview" style={{ marginTop: '30px', padding: '20px', border: products.length > 0 ? '2px solid #4CAF50' : '2px solid #ff9800', borderRadius: '8px', backgroundColor: products.length > 0 ? '#f9fff9' : '#fff3e0' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: products.length > 0 ? '#4CAF50' : '#ff9800', fontSize: '18px', textAlign: 'center' }}>
-            {products.length > 0 ? `Preview Tabel Produse (${products.length} produse) - va apărea în PDF` : '⚠️ Preview Tabel Produse (Gol)'}
-          </h3>
+        {/* Products Table Editor - Editable table that will appear in PDF */}
+        <div className="products-table-editor" style={{ marginTop: '30px', padding: '20px', border: '2px solid #4CAF50', borderRadius: '8px', backgroundColor: '#f9fff9' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, color: '#4CAF50', fontSize: '18px' }}>
+              Tabel Produse ({products.length} {products.length === 1 ? 'produs' : 'produse'})
+            </h3>
+            <button
+              type="button"
+              onClick={handleAddProduct}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+              }}
+            >
+              + Adaugă Produs
+            </button>
+          </div>
+
           {products.length > 0 ? (
-            <div dangerouslySetInnerHTML={{ __html: getProductsTableHTML(products) }}></div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f5f5f5' }}>
+                    <th style={{ padding: '12px 8px', border: '1px solid #ddd', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', minWidth: '50px' }}>Nr. crt.</th>
+                    <th style={{ padding: '12px 8px', border: '1px solid #ddd', fontSize: '13px', fontWeight: 'bold', textAlign: 'left', minWidth: '200px' }}>Denumire produs</th>
+                    <th style={{ padding: '12px 8px', border: '1px solid #ddd', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', minWidth: '80px' }}>U.M.</th>
+                    <th style={{ padding: '12px 8px', border: '1px solid #ddd', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', minWidth: '100px' }}>Cantități</th>
+                    <th style={{ padding: '12px 8px', border: '1px solid #ddd', fontSize: '13px', fontWeight: 'bold', textAlign: 'right', minWidth: '120px' }}>Preț unitar fără TVA</th>
+                    <th style={{ padding: '12px 8px', border: '1px solid #ddd', fontSize: '13px', fontWeight: 'bold', textAlign: 'right', minWidth: '120px' }}>Valoare totală fără TVA</th>
+                    <th style={{ padding: '12px 8px', border: '1px solid #ddd', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', minWidth: '80px' }}>Acțiuni</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product: Product, index: number) => (
+                    <tr key={index}>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                        <input
+                          type="number"
+                          value={product.itemNumber}
+                          onChange={(e) => handleProductFieldChange(index, 'itemNumber', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #ccc', borderRadius: '4px', textAlign: 'center' }}
+                        />
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                        <input
+                          type="text"
+                          value={product.productName}
+                          onChange={(e) => handleProductFieldChange(index, 'productName', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #ccc', borderRadius: '4px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                        <input
+                          type="text"
+                          value={product.unitOfMeasurement}
+                          onChange={(e) => handleProductFieldChange(index, 'unitOfMeasurement', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #ccc', borderRadius: '4px', textAlign: 'center' }}
+                        />
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={product.quantity}
+                          onChange={(e) => handleProductFieldChange(index, 'quantity', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #ccc', borderRadius: '4px', textAlign: 'center' }}
+                        />
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right' }}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={product.unitPriceNoVAT}
+                          onChange={(e) => handleProductFieldChange(index, 'unitPriceNoVAT', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #ccc', borderRadius: '4px', textAlign: 'right' }}
+                        />
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
+                        {product.totalValueNoVAT.toFixed(2)}
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveProduct(index)}
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                          }}
+                          title="Șterge produsul"
+                        >
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
+                    <td colSpan={5} style={{ padding: '12px 8px', border: '1px solid #ddd', textAlign: 'right', fontSize: '14px' }}>
+                      TOTAL FARA TVA
+                    </td>
+                    <td style={{ padding: '12px 8px', border: '1px solid #ddd', textAlign: 'right', fontSize: '14px' }}>
+                      {products.reduce((sum: number, p: Product) => sum + p.totalValueNoVAT, 0).toFixed(2)} LEI
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#e65100' }}>
-              <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px' }}>Nu există produse pentru a genera tabelul</p>
-              <p style={{ margin: '10px 0 0 0', fontSize: '12px' }}>Utilizați editorul de mai jos pentru a adăuga produse</p>
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
+              <p style={{ margin: '0 0 15px 0', fontSize: '14px' }}>Nu există produse în tabel</p>
+              <p style={{ margin: 0, fontSize: '12px', color: '#999' }}>Apăsați butonul "+ Adaugă Produs" pentru a adăuga primul produs</p>
             </div>
           )}
         </div>
