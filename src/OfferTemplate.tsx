@@ -28,8 +28,8 @@ function getProductsTableHTML(products: Product[]) {
       <td style="border: 1px solid #000; padding: 8px; font-size: 10pt;"><strong>${product.productName}</strong></td>
       <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt;">${product.unitOfMeasurement}</td>
       <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt;">${product.quantity}</td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt;">${product.unitPriceNoVAT}</td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt;">${product.totalValueNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt;">${typeof product.unitPriceNoVAT === 'number' ? product.unitPriceNoVAT.toFixed(2) : product.unitPriceNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt;">${typeof product.totalValueNoVAT === 'number' ? product.totalValueNoVAT.toFixed(2) : product.totalValueNoVAT}</td>
     </tr>
   `).join('')
 
@@ -50,7 +50,7 @@ function getProductsTableHTML(products: Product[]) {
           ${productsRows}
           <tr>
             <td colspan="6" style="border: 1px solid #000; padding: 12px; text-align: right; font-weight: bold; font-size: 11pt;">
-              TOTAL FARA TVA= ${totalNoVAT} LEI
+              TOTAL FARA TVA= ${totalNoVAT.toFixed(2)} LEI
             </td>
           </tr>
         </tbody>
@@ -301,6 +301,10 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       // Debug: Log products state
       console.log('Generating PDF with products:', products)
       console.log('Products count:', products.length)
+      if (products && products.length > 0) {
+        console.log('First product:', products[0])
+        console.log('Products table HTML preview:', getProductsTableHTML(products).substring(0, 500))
+      }
 
       try {
         const pdf = new jsPDF('p', 'mm', 'a4')
@@ -317,6 +321,8 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
         annexContainer.innerHTML = getAnnexHTML()
         document.body.appendChild(annexContainer)
+
+        await new Promise((resolve) => setTimeout(resolve, 200))
 
         const annexCanvas = await html2canvas(annexContainer, {
           scale: 2,
@@ -344,9 +350,13 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           productsContainer.innerHTML = getProductsTableHTML(products)
           document.body.appendChild(productsContainer)
 
+          await new Promise((resolve) => setTimeout(resolve, 200))
+
+          console.log('Capturing products table, HTML:', productsContainer.innerHTML.substring(0, 500))
+
           const productsCanvas = await html2canvas(productsContainer, {
             scale: 2,
-            logging: false,
+            logging: true,
             backgroundColor: '#ffffff'
           })
 
