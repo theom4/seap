@@ -47,6 +47,7 @@ function normalizeOffer(rawOffer: unknown, context: string): OfferData | null {
   const normalizedContent: OfferContent = {
     ...rawContent,
     confidenceMessage: rawContent.confidenceMessage || '',
+    products: rawContent.products || [], // Include products from webhook if available
   }
 
   // Prefer base64 image if available, otherwise fall back to imageUrl

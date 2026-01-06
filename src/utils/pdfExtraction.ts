@@ -9,6 +9,15 @@ export interface ExtractedImage {
   type: string
 }
 
+export interface ExtractedProduct {
+  itemNumber: number
+  productName: string
+  unitOfMeasurement: string
+  quantity: number
+  unitPriceNoVAT: number
+  totalValueNoVAT: number
+}
+
 /**
  * Extracts an image from a PDF file.
  * First tries to extract embedded images, then falls back to rendering the first page as an image.
@@ -148,7 +157,122 @@ export async function extractImageFromPDF(file: File): Promise<ExtractedImage> {
   }
 }
 
+/**
+ * Extracts text content from all pages of a PDF
+ */
+async function extractTextFromPDF(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({
+    data: arrayBuffer,
+    verbosity: 0,
+  }).promise
 
+  let fullText = ''
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum)
+    const textContent = await page.getTextContent()
+    const pageText = textContent.items
+      .map((item: any) => item.str)
+      .join(' ')
+    fullText += pageText + '\n'
+  }
+
+  return fullText
+}
+
+/**
+ * Extracts products table from a PDF file.
+ * Looks for patterns like:
+ * - "Nr. crt." or "Nr.crt" (item number column)
+ * - "Denumire produs" or "Denumire" (product name)
+ * - "U.M." (unit of measurement)
+ * - "Cantitati" or "Cantități" (quantity)
+ * - "Pret unitar" or "Preț unitar" (unit price)
+ * - "Valoare totala" or "Valoare totală" (total value)
+ */
+export async function extractProductsFromPDF(file: File): Promise<ExtractedProduct[]> {
+  try {
+    const text = await extractTextFromPDF(file)
+    const products: ExtractedProduct[] = []
+
+    // Split into lines
+    const lines = text.split('\n')
+
+    // Find table headers - look for products table indicators
+    let inProductsTable = false
+    let productCount = 0
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim()
+      const lowerLine = line.toLowerCase()
+
+      // Check if we're entering a products table
+      if (
+        (lowerLine.includes('nr') && lowerLine.includes('crt')) ||
+        (lowerLine.includes('denumire') && lowerLine.includes('produs'))
+      ) {
+        inProductsTable = true
+        continue
+      }
+
+      // Check if we're exiting the table (TOTAL row)
+      if (lowerLine.includes('total') && lowerLine.includes('fara') && lowerLine.includes('tva')) {
+        inProductsTable = false
+        continue
+      }
+
+      // If we're in the table, try to extract product data
+      if (inProductsTable && line.length > 0) {
+        // Try to parse a product row
+        // Pattern: number | product name | unit | quantity | unit price | total
+
+        // Look for lines that start with a number
+        const numberMatch = line.match(/^(\d+)\s+(.+)/)
+        if (numberMatch) {
+          const itemNumber = parseInt(numberMatch[1])
+          const restOfLine = numberMatch[2]
+
+          // Try to extract values from the line
+          // This is a heuristic approach - look for patterns like "BUC 6 167 1002"
+          const values = restOfLine.match(/\b(\d+(?:[.,]\d+)?)\b/g)
+
+          if (values && values.length >= 3) {
+            // Extract product name (text before the first number)
+            const productNameMatch = restOfLine.match(/^(.+?)\s+(?:BUC|buc|BUC|SET|set|KG|kg|M|m|L|l)\s/)
+            const productName = productNameMatch ? productNameMatch[1].trim() : restOfLine.split(/\d/)[0].trim()
+
+            // Extract unit of measurement
+            const unitMatch = restOfLine.match(/\b(BUC|buc|SET|set|KG|kg|M|m|L|l)\b/i)
+            const unitOfMeasurement = unitMatch ? unitMatch[1].toUpperCase() : 'BUC'
+
+            // Parse numbers (quantity, unit price, total)
+            const quantity = parseFloat(values[0].replace(',', '.'))
+            const unitPrice = parseFloat(values[1].replace(',', '.'))
+            const total = parseFloat(values[2].replace(',', '.'))
+
+            if (productName && !isNaN(quantity) && !isNaN(unitPrice) && !isNaN(total)) {
+              products.push({
+                itemNumber,
+                productName,
+                unitOfMeasurement,
+                quantity,
+                unitPriceNoVAT: unitPrice,
+                totalValueNoVAT: total,
+              })
+              productCount++
+            }
+          }
+        }
+      }
+    }
+
+    return products
+  } catch (error) {
+    console.error('Failed to extract products from PDF:', error)
+    return []
+  }
+}
 
 
 

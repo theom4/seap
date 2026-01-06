@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, type DragEvent } from 'react'
 import { OffersList } from './components/OffersList'
 import { extractBinaryFromFile } from './utils/pdfBinaryExtraction'
-import type { WebhookResponse } from './types'
+import { extractProductsFromPDF } from './utils/pdfExtraction'
+import type { WebhookResponse, OfferData } from './types'
 import './App.css'
 
 // LocalStorage keys
@@ -364,7 +365,55 @@ function App() {
       }
 
       console.log(`Webhook response received: ${responseData.length} item(s)`)
-      setWebhookResponse(responseData)
+
+      // Extract products from PDF files and merge with webhook response
+      try {
+        const pdfFiles = pendingFiles.filter(({ file }) =>
+          file.file.type === 'application/pdf' || file.file.name.toLowerCase().endsWith('.pdf')
+        )
+
+        if (pdfFiles.length > 0) {
+          console.log(`Extracting products from ${pdfFiles.length} PDF file(s)...`)
+
+          // Extract products from each PDF
+          const productsArrays = await Promise.all(
+            pdfFiles.map(async ({ file }) => {
+              try {
+                const products = await extractProductsFromPDF(file.file)
+                console.log(`Extracted ${products.length} products from ${file.file.name}`)
+                return products
+              } catch (error) {
+                console.error(`Failed to extract products from ${file.file.name}:`, error)
+                return []
+              }
+            })
+          )
+
+          // Merge products into webhook response
+          // Assuming the webhook response has one offer per PDF file
+          const mergedResponse = (responseData as OfferData[]).map((offer, index) => {
+            if (index < productsArrays.length && productsArrays[index].length > 0) {
+              return {
+                ...offer,
+                offerConent: {
+                  ...offer.offerConent,
+                  products: productsArrays[index],
+                },
+              }
+            }
+            return offer
+          })
+
+          setWebhookResponse(mergedResponse)
+          console.log('Products successfully merged with webhook response')
+        } else {
+          setWebhookResponse(responseData)
+        }
+      } catch (productsError) {
+        console.error('Error extracting products from PDFs:', productsError)
+        // Still set the webhook response even if products extraction fails
+        setWebhookResponse(responseData)
+      }
 
       // Clear processing state
       setUploadTimestamp(null)
