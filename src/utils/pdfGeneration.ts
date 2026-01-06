@@ -7,7 +7,7 @@ export function downloadPDF(pdfBlob: Blob, offerTitle: string): void {
   link.href = url
 
   // Create a safe filename from the offer title
-  const safeTitle = offerTitle
+  const safeTitle = (offerTitle || 'offer')
     .replace(/[^a-z0-9]/gi, '_')
     .toLowerCase()
     .substring(0, 50)

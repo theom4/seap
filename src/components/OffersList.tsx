@@ -32,7 +32,7 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
 
   const handlePDFGenerated = (pdfBlob: Blob, offerTitle: string, offerIndex: number) => {
     // Include index in filename to ensure uniqueness when multiple offers have similar titles
-    const safeTitle = offerTitle
+    const safeTitle = (offerTitle || 'offer')
       .replace(/[^a-z0-9]/gi, '_')
       .toLowerCase()
       .substring(0, 50)
@@ -67,7 +67,7 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
             const pdfBlob = await ref.generatePDF()
             pdfBlobs.push(pdfBlob)
             const offer = offers[i]
-            const safeTitle = offer.offerConent.title
+            const safeTitle = (offer.offerConent.title || 'offer')
               .replace(/[^a-z0-9]/gi, '_')
               .toLowerCase()
               .substring(0, 50)
