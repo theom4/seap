@@ -314,20 +314,32 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       if (!templateRef.current) throw new Error('Template ref not found')
 
       try {
-        // --- PAGE 1: Main Offer ---
-        const canvas = await html2canvas(templateRef.current, {
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const pdfWidth = 210
+
+        // --- PAGE 1: Annex (Formular de Oferta) - NOW FIRST ---
+        const annexContainer = document.createElement('div')
+        annexContainer.style.position = 'absolute'
+        annexContainer.style.left = '-9999px'
+        annexContainer.style.top = '0'
+        annexContainer.style.width = '210mm'
+        annexContainer.style.backgroundColor = 'white'
+        annexContainer.style.padding = '20mm'
+
+        annexContainer.innerHTML = getAnnexHTML()
+        document.body.appendChild(annexContainer)
+
+        const annexCanvas = await html2canvas(annexContainer, {
           scale: 2,
-          useCORS: true,
           logging: false,
           backgroundColor: '#ffffff'
         })
 
-        const pdf = new jsPDF('p', 'mm', 'a4')
-        const pdfWidth = 210
-        const imgHeight = (canvas.height * pdfWidth) / canvas.width
-        const imgData = canvas.toDataURL('image/jpeg', 0.8)
-        
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight)
+        const annexImgHeight = (annexCanvas.height * pdfWidth) / annexCanvas.width
+        const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.8)
+
+        pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, annexImgHeight)
+        document.body.removeChild(annexContainer)
 
         // --- PAGE 2: Products Table (if products exist) ---
         if (products && products.length > 0) {
@@ -356,31 +368,20 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           document.body.removeChild(productsContainer)
         }
 
-        // --- PAGE 3: Annex (Formular de Oferta) ---
+        // --- PAGE 3: Main Offer - NOW LAST ---
         pdf.addPage()
 
-        const annexContainer = document.createElement('div')
-        annexContainer.style.position = 'absolute'
-        annexContainer.style.left = '-9999px'
-        annexContainer.style.top = '0'
-        annexContainer.style.width = '210mm'
-        annexContainer.style.backgroundColor = 'white'
-        annexContainer.style.padding = '20mm'
-
-        annexContainer.innerHTML = getAnnexHTML()
-        document.body.appendChild(annexContainer)
-
-        const annexCanvas = await html2canvas(annexContainer, {
+        const canvas = await html2canvas(templateRef.current, {
           scale: 2,
+          useCORS: true,
           logging: false,
           backgroundColor: '#ffffff'
         })
 
-        const annexImgHeight = (annexCanvas.height * pdfWidth) / annexCanvas.width
-        const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.8)
+        const imgHeight = (canvas.height * pdfWidth) / canvas.width
+        const imgData = canvas.toDataURL('image/jpeg', 0.8)
 
-        pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, annexImgHeight)
-        document.body.removeChild(annexContainer)
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight)
 
         return pdf.output('blob')
 
