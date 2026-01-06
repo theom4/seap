@@ -24,32 +24,32 @@ function getProductsTableHTML(products: Product[]) {
 
   const productsRows = products.map(product => `
     <tr>
-      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${product.itemNumber}</td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: left; font-size: 11pt; font-family: Arial, sans-serif; color: #000;"><strong>${product.productName}</strong></td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${product.unitOfMeasurement}</td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${product.quantity}</td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: right; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${typeof product.unitPriceNoVAT === 'number' ? product.unitPriceNoVAT.toFixed(2) : product.unitPriceNoVAT}</td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: right; font-size: 11pt; font-family: Arial, sans-serif; color: #000;">${typeof product.totalValueNoVAT === 'number' ? product.totalValueNoVAT.toFixed(2) : product.totalValueNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${product.itemNumber}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: left; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;"><strong style="color: #000 !important;">${product.productName}</strong></td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${product.unitOfMeasurement}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${product.quantity}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: right; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${typeof product.unitPriceNoVAT === 'number' ? product.unitPriceNoVAT.toFixed(2) : product.unitPriceNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 10px; text-align: right; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${typeof product.totalValueNoVAT === 'number' ? product.totalValueNoVAT.toFixed(2) : product.totalValueNoVAT}</td>
     </tr>
   `).join('')
 
   return `
-    <div style="font-family: Arial, sans-serif; color: #000; background: white; padding: 20mm 15mm; box-sizing: border-box;">
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed;">
+    <div style="font-family: Arial, sans-serif; color: #000 !important; background: white; padding: 20mm 15mm; box-sizing: border-box;">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed; color: #000 !important;">
         <thead>
           <tr>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Nr.<br/>crt.</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Denumire produs</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">U.M.</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Cantitati</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Pret unitar<br/>fara tva</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000; line-height: 1.2;">Valoare<br/>totala<br/>fara TVA</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Nr.<br/>crt.</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Denumire produs</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">U.M.</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Cantitati</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Pret unitar<br/>fara tva</th>
+            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Valoare<br/>totala<br/>fara TVA</th>
           </tr>
         </thead>
         <tbody>
           ${productsRows}
           <tr>
-            <td colspan="6" style="border: 1px solid #000; padding: 12px; text-align: right; font-weight: bold; font-size: 11pt; font-family: Arial, sans-serif; color: #000; background: #f5f5f5;">
+            <td colspan="6" style="border: 1px solid #000; padding: 12px; text-align: right; font-weight: bold; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important; background: #f5f5f5;">
               TOTAL FARA TVA= ${totalNoVAT.toFixed(2)} LEI
             </td>
           </tr>
@@ -58,15 +58,15 @@ function getProductsTableHTML(products: Product[]) {
 
       <div style="margin-top: 60px; display: flex; justify-content: space-between;">
         <div style="flex: 1;">
-          <p style="margin: 0 0 10px 0; font-size: 11pt;"><strong>OFERTANTUL</strong></p>
-          <p style="margin: 0 0 5px 0; font-size: 11pt;"><strong>S.C. AS GREEN LAND S.R.L</strong></p>
-          <p style="margin: 0; font-size: 10pt; font-style: italic;">(denumirea/numele)</p>
+          <p style="margin: 0 0 10px 0; font-size: 11pt; color: #000 !important;"><strong style="color: #000 !important;">OFERTANTUL</strong></p>
+          <p style="margin: 0 0 5px 0; font-size: 11pt; color: #000 !important;"><strong style="color: #000 !important;">S.C. AS GREEN LAND S.R.L</strong></p>
+          <p style="margin: 0; font-size: 10pt; font-style: italic; color: #000 !important;">(denumirea/numele)</p>
         </div>
         <div style="flex: 1; text-align: right;">
-          <p style="margin: 0 0 5px 0; font-size: 10pt;">Preturile Nu Contin TVA</p>
-          <p style="margin: 0 0 5px 0; font-size: 10pt;">Transportul este inclus in pret</p>
-          <p style="margin: 0 0 5px 0; font-size: 10pt;">Plata prin cont de Trezorerie</p>
-          <p style="margin: 0; font-size: 10pt;">Termen de plata stabilt la semnarea contractului</p>
+          <p style="margin: 0 0 5px 0; font-size: 10pt; color: #000 !important;">Preturile Nu Contin TVA</p>
+          <p style="margin: 0 0 5px 0; font-size: 10pt; color: #000 !important;">Transportul este inclus in pret</p>
+          <p style="margin: 0 0 5px 0; font-size: 10pt; color: #000 !important;">Plata prin cont de Trezorerie</p>
+          <p style="margin: 0; font-size: 10pt; color: #000 !important;">Termen de plata stabilt la semnarea contractului</p>
         </div>
       </div>
     </div>
