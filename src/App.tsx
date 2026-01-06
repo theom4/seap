@@ -419,18 +419,78 @@ function App() {
                 },
               }
             }
+            // No products extracted, create default from title
+            if (!offer.offerConent?.products || offer.offerConent.products.length === 0) {
+              const defaultProduct = {
+                itemNumber: 1,
+                productName: offer.offerConent?.title || 'Produs',
+                unitOfMeasurement: 'BUC',
+                quantity: 0,
+                unitPriceNoVAT: 0,
+                totalValueNoVAT: 0,
+              }
+              return {
+                ...offer,
+                offerConent: {
+                  ...offer.offerConent,
+                  products: [defaultProduct],
+                },
+              }
+            }
             return offer
           })
 
           setWebhookResponse(mergedResponse)
           console.log('Products successfully merged with webhook response')
         } else {
-          setWebhookResponse(responseData)
+          // No PDFs to extract from, but we should still add default products from title
+          const enrichedResponse = (responseData as OfferData[]).map((offer) => {
+            // If products don't exist, create a default one from the title
+            if (!offer.offerConent?.products || offer.offerConent.products.length === 0) {
+              const defaultProduct = {
+                itemNumber: 1,
+                productName: offer.offerConent?.title || 'Produs',
+                unitOfMeasurement: 'BUC',
+                quantity: 0,
+                unitPriceNoVAT: 0,
+                totalValueNoVAT: 0,
+              }
+              return {
+                ...offer,
+                offerConent: {
+                  ...offer.offerConent,
+                  products: [defaultProduct],
+                },
+              }
+            }
+            return offer
+          })
+          setWebhookResponse(enrichedResponse)
         }
       } catch (productsError) {
         console.error('Error extracting products from PDFs:', productsError)
-        // Still set the webhook response even if products extraction fails
-        setWebhookResponse(responseData)
+        // Still set the webhook response even if products extraction fails, but add default products
+        const enrichedResponse = (responseData as OfferData[]).map((offer) => {
+          if (!offer.offerConent?.products || offer.offerConent.products.length === 0) {
+            const defaultProduct = {
+              itemNumber: 1,
+              productName: offer.offerConent?.title || 'Produs',
+              unitOfMeasurement: 'BUC',
+              quantity: 0,
+              unitPriceNoVAT: 0,
+              totalValueNoVAT: 0,
+            }
+            return {
+              ...offer,
+              offerConent: {
+                ...offer.offerConent,
+                products: [defaultProduct],
+              },
+            }
+          }
+          return offer
+        })
+        setWebhookResponse(enrichedResponse)
       }
 
       // Clear processing state
