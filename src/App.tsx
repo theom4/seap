@@ -96,6 +96,22 @@ function App() {
     setSelectedModel(MODELS[modelProvider][0])
   }, [modelProvider])
 
+  // Helper function to parse European price format (e.g., "61.050,00 RON" or "70,00 RON / intervenție")
+  const parsePrice = (priceString: string | undefined): number => {
+    if (!priceString) return 0
+
+    // Extract the numeric part (digits, dots, commas)
+    const priceMatch = priceString.match(/[\d,\.]+/)
+    if (!priceMatch) return 0
+
+    // European format: dots are thousands separators, comma is decimal separator
+    // Remove all dots, then replace comma with dot for parseFloat
+    const normalized = priceMatch[0].replace(/\./g, '').replace(',', '.')
+    const parsed = parseFloat(normalized)
+
+    return isNaN(parsed) ? 0 : parsed
+  }
+
   // Load state from localStorage on mount
   useEffect(() => {
     try {
@@ -424,14 +440,7 @@ function App() {
             }
             // No products extracted, create default from title and productPrice
             if (!offerConent.products || offerConent.products.length === 0) {
-              // Try to parse productPrice if available (format: "6,00 RON" or "6.00 RON")
-              let parsedPrice = 0
-              if (offerConent.productPrice) {
-                const priceMatch = offerConent.productPrice.match(/[\d,\.]+/)
-                if (priceMatch) {
-                  parsedPrice = parseFloat(priceMatch[0].replace(',', '.'))
-                }
-              }
+              const parsedPrice = parsePrice(offerConent.productPrice)
 
               const defaultProduct = {
                 itemNumber: 1,
@@ -460,14 +469,7 @@ function App() {
             const offerConent = offer.offerConent || {}
             // If products don't exist, create a default one from the title and productPrice
             if (!offerConent.products || offerConent.products.length === 0) {
-              // Try to parse productPrice if available (format: "6,00 RON" or "6.00 RON")
-              let parsedPrice = 0
-              if (offerConent.productPrice) {
-                const priceMatch = offerConent.productPrice.match(/[\d,\.]+/)
-                if (priceMatch) {
-                  parsedPrice = parseFloat(priceMatch[0].replace(',', '.'))
-                }
-              }
+              const parsedPrice = parsePrice(offerConent.productPrice)
 
               const defaultProduct = {
                 itemNumber: 1,
@@ -495,14 +497,7 @@ function App() {
         const enrichedResponse = (responseData as OfferData[]).map((offer) => {
           const offerConent = offer.offerConent || {}
           if (!offerConent.products || offerConent.products.length === 0) {
-            // Try to parse productPrice if available (format: "6,00 RON" or "6.00 RON")
-            let parsedPrice = 0
-            if (offerConent.productPrice) {
-              const priceMatch = offerConent.productPrice.match(/[\d,\.]+/)
-              if (priceMatch) {
-                parsedPrice = parseFloat(priceMatch[0].replace(',', '.'))
-              }
-            }
+            const parsedPrice = parsePrice(offerConent.productPrice)
 
             const defaultProduct = {
               itemNumber: 1,
