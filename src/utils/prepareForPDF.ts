@@ -20,6 +20,7 @@ export function prepareElementForPDF(element: HTMLElement): () => void {
     '.offer-template-actions',
     '.editable-date-input',
     '.offer-main-message',
+    '.special-offer-box',
   ]
 
   hideSelectors.forEach((selector) => {
