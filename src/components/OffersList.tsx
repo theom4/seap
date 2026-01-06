@@ -16,6 +16,16 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
   const [isDownloadingAll, setIsDownloadingAll] = useState(false)
   const [activeOfferIndex, setActiveOfferIndex] = useState<number | null>(null)
 
+  // Debug: Log offers with products
+  console.log('OffersList: Total offers:', offers.length)
+  offers.forEach((offer, idx) => {
+    console.log(`Offer ${idx}:`, {
+      title: offer.offerConent.title,
+      productsCount: offer.offerConent.products?.length || 0,
+      products: offer.offerConent.products
+    })
+  })
+
   if (offers.length === 0) {
     return null
   }

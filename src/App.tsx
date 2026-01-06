@@ -462,6 +462,12 @@ function App() {
     })
   }
 
+  const loadMockData = async () => {
+    const { mockSeedData } = await import('./data/mockSeedData')
+    console.log('Loading mock seed data:', mockSeedData)
+    setWebhookResponse(mockSeedData)
+  }
+
 
   const isProcessing = files.some(f => f.status === 'extracting' || f.status === 'uploading')
   const hasFiles = files.length > 0
@@ -470,10 +476,16 @@ function App() {
     <div className="min-h-screen bg-back text-text-main">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 flex justify-between items-center">
           <h1 className="text-4xl font-bold text-text-main">
             Generator Oferte PDF
           </h1>
+          <button
+            onClick={loadMockData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors shadow-sm"
+          >
+            Încarcă Date Test
+          </button>
         </div>
 
         {/* Main Layout: 30% Upload, 70% PDF Area */}

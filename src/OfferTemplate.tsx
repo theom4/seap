@@ -170,6 +170,11 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [footerAddress, setFooterAddress] = useState('Strada Comerțului Nr. 10, Sector 1, București')
     const [products, setProducts] = useState(initialContent.products || [])
 
+    // Debug: Log products state on every render
+    console.log('OfferTemplate render - Products state:', products)
+    console.log('OfferTemplate render - Products count:', products.length)
+    console.log('OfferTemplate render - Initial content products:', initialContent.products)
+
     // State for "Static" labels that are now editable
     const [customText, setCustomText] = useState({
       productPageLabel: 'Pagină produs:',
@@ -491,12 +496,19 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
 
         {/* Products Table Preview - Show what will appear in PDF */}
-        {products.length > 0 && (
-          <div className="products-table-preview" style={{ marginTop: '30px', padding: '20px', border: '2px solid #4CAF50', borderRadius: '8px', backgroundColor: '#f9fff9' }}>
-            <h3 style={{ margin: '0 0 15px 0', color: '#4CAF50', fontSize: '18px', textAlign: 'center' }}>Preview Tabel Produse (va apărea în PDF)</h3>
+        <div className="products-table-preview" style={{ marginTop: '30px', padding: '20px', border: products.length > 0 ? '2px solid #4CAF50' : '2px solid #ff9800', borderRadius: '8px', backgroundColor: products.length > 0 ? '#f9fff9' : '#fff3e0' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: products.length > 0 ? '#4CAF50' : '#ff9800', fontSize: '18px', textAlign: 'center' }}>
+            {products.length > 0 ? `Preview Tabel Produse (${products.length} produse) - va apărea în PDF` : '⚠️ Preview Tabel Produse (Gol)'}
+          </h3>
+          {products.length > 0 ? (
             <div dangerouslySetInnerHTML={{ __html: getProductsTableHTML(products) }}></div>
-          </div>
-        )}
+          ) : (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#e65100' }}>
+              <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px' }}>Nu există produse pentru a genera tabelul</p>
+              <p style={{ margin: '10px 0 0 0', fontSize: '12px' }}>Utilizați editorul de mai jos pentru a adăuga produse</p>
+            </div>
+          )}
+        </div>
 
         <div ref={templateRef} className="offer-template">
           {/* Header */}

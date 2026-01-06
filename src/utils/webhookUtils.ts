@@ -44,11 +44,19 @@ function normalizeOffer(rawOffer: unknown, context: string): OfferData | null {
     return null
   }
 
+  // Debug: Log raw content products
+  console.log(`normalizeOffer (${context}): Raw products:`, rawContent.products)
+  console.log(`normalizeOffer (${context}): Products count:`, rawContent.products?.length || 0)
+
   const normalizedContent: OfferContent = {
     ...rawContent,
     confidenceMessage: rawContent.confidenceMessage || '',
     products: rawContent.products || [], // Include products from webhook if available
   }
+
+  // Debug: Verify normalized products
+  console.log(`normalizeOffer (${context}): Normalized products:`, normalizedContent.products)
+  console.log(`normalizeOffer (${context}): Normalized count:`, normalizedContent.products?.length || 0)
 
   // Prefer base64 image if available, otherwise fall back to imageUrl
   if (rawContent.imageBase64 && typeof rawContent.imageBase64 === 'string') {
