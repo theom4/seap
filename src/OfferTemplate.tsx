@@ -478,48 +478,45 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
           {products.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', border: '2px solid #000' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', border: '1px solid #000' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <th style={{ padding: '12px', border: '1px solid #000', fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>Nr. crt.</th>
-                    <th style={{ padding: '12px', border: '1px solid #000', fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>Denumire produs</th>
-                    <th style={{ padding: '12px', border: '1px solid #000', fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>U.M.</th>
-                    <th style={{ padding: '12px', border: '1px solid #000', fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>Cantitati</th>
-                    <th style={{ padding: '12px', border: '1px solid #000', fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>Pret unitar<br/>fara tva</th>
-                    <th style={{ padding: '12px', border: '1px solid #000', fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>Valoare totala<br/>fara TVA</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px' }}>Nr.<br/>crt.</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center' }}>Denumire produs</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px' }}>U.M.</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '80px' }}>Cantitati</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px' }}>Pret unitar<br/>fara tva</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px' }}>Valoare<br/>totala<br/>fara TVA</th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.map((product: Product, index: number) => (
                     <tr key={index}>
-                      <td style={{ padding: '12px', border: '1px solid #000', textAlign: 'center', fontSize: '14px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px' }}>
                         {product.itemNumber}
                       </td>
-                      <td style={{ padding: '12px', border: '1px solid #000', textAlign: 'left', fontSize: '14px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'left', fontSize: '13px' }}>
                         {product.productName}
                       </td>
-                      <td style={{ padding: '12px', border: '1px solid #000', textAlign: 'center', fontSize: '14px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px' }}>
                         {product.unitOfMeasurement}
                       </td>
-                      <td style={{ padding: '12px', border: '1px solid #000', textAlign: 'center', fontSize: '14px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px' }}>
                         {product.quantity}
                       </td>
-                      <td style={{ padding: '12px', border: '1px solid #000', textAlign: 'right', fontSize: '14px' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px' }}>
                         {product.unitPriceNoVAT.toFixed(2)}
                       </td>
-                      <td style={{ padding: '12px', border: '1px solid #000', textAlign: 'right', fontSize: '14px', fontWeight: 'bold' }}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px' }}>
                         {product.totalValueNoVAT.toFixed(2)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <td colSpan={5} style={{ padding: '12px', border: '1px solid #000', textAlign: 'right', fontSize: '14px', fontWeight: 'bold' }}>
-                      TOTAL FARA TVA=
-                    </td>
-                    <td style={{ padding: '12px', border: '1px solid #000', textAlign: 'right', fontSize: '14px', fontWeight: 'bold' }}>
-                      {products.reduce((sum: number, p: Product) => sum + p.totalValueNoVAT, 0).toFixed(2)} LEI
+                  <tr>
+                    <td colSpan={6} style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', fontWeight: 'bold' }}>
+                      TOTAL FARA TVA= {products.reduce((sum: number, p: Product) => sum + p.totalValueNoVAT, 0).toFixed(2)} LEI
                     </td>
                   </tr>
                 </tfoot>
