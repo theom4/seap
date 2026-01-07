@@ -50,7 +50,7 @@ function normalizeOffer(rawOffer: unknown, context: string): OfferData | null {
 
   // Generate products array if not provided
   let products = rawContent.products || []
-  if (products.length === 0 && rawContent.subtitle) {
+  if (products.length === 0 && (rawContent.title || rawContent.subtitle)) {
     // Extract price from productPrice string (e.g., "70,00 RON / intervenție" -> 70.00)
     let unitPrice = 0
     if (rawContent.productPrice && typeof rawContent.productPrice === 'string') {
