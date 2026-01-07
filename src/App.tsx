@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, type DragEvent } from 'react'
 import { OffersList } from './components/OffersList'
-import { getAllOffers } from './utils/webhookUtils'
 import { extractBinaryFromFile } from './utils/pdfBinaryExtraction'
 import { extractProductsFromPDF } from './utils/pdfExtraction'
 import type { WebhookResponse, OfferData } from './types'
