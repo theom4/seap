@@ -495,7 +495,9 @@ function App() {
         console.error('Error extracting products from PDFs:', productsError)
         // Still set the webhook response even if products extraction fails, but add default products
         const enrichedResponse = (responseData as OfferData[]).map((offer) => {
-          const offerConent = offer.offerConent || {}
+        const offerConent = offer.offerConent || offer.offerContent || {}
+
+
           if (!offerConent.products || offerConent.products.length === 0) {
             const parsedPrice = parsePrice(offerConent.productPrice)
 
