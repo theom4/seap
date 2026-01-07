@@ -59,12 +59,15 @@ function normalizeOffer(rawOffer: unknown, context: string): OfferData | null {
         unitPrice = parseFloat(priceMatch[0].replace(',', '.'))
       }
     }
-
+let productName = rawContent.title || rawContent.subtitle || 'Produs'
+if (productName.startsWith('Oferta Comerciala: ')) {
+  productName = productName.replace('Oferta Comerciala: ', '')
+}
     // Create a single product entry from subtitle
     products = [
       {
         itemNumber: 1,
-        productName: rawContent.subtitle,
+        productName: productName,
         unitOfMeasurement: 'BUC',
         quantity: 1,
         unitPriceNoVAT: unitPrice,
