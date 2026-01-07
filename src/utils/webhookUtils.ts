@@ -48,10 +48,35 @@ function normalizeOffer(rawOffer: unknown, context: string): OfferData | null {
   console.log(`normalizeOffer (${context}): Raw products:`, rawContent.products)
   console.log(`normalizeOffer (${context}): Products count:`, rawContent.products?.length || 0)
 
+  // Generate products array if not provided
+  let products = rawContent.products || []
+  if (products.length === 0 && rawContent.subtitle) {
+    // Extract price from productPrice string (e.g., "70,00 RON / intervenție" -> 70.00)
+    let unitPrice = 0
+    if (rawContent.productPrice && typeof rawContent.productPrice === 'string') {
+      const priceMatch = rawContent.productPrice.match(/[\d,]+/)
+      if (priceMatch) {
+        unitPrice = parseFloat(priceMatch[0].replace(',', '.'))
+      }
+    }
+
+    // Create a single product entry from subtitle
+    products = [
+      {
+        itemNumber: 1,
+        productName: rawContent.subtitle,
+        unitOfMeasurement: 'BUC',
+        quantity: 1,
+        unitPriceNoVAT: unitPrice,
+        totalValueNoVAT: unitPrice,
+      },
+    ]
+  }
+
   const normalizedContent: OfferContent = {
     ...rawContent,
     confidenceMessage: rawContent.confidenceMessage || '',
-    products: rawContent.products || [], // Include products from webhook if available
+    products: products,
   }
 
   // Debug: Verify normalized products
