@@ -444,7 +444,7 @@ function App() {
 
               const defaultProduct = {
                 itemNumber: 1,
-                productName: offerConent.subtitle || offerConent.title || 'Produs',
+productName: (offerConent.title || offerConent.subtitle || 'Produs').replace('Oferta Comerciala: ', ''),
                 unitOfMeasurement: 'BUC',
                 quantity: 1,
                 unitPriceNoVAT: parsedPrice,
@@ -473,7 +473,7 @@ function App() {
 
               const defaultProduct = {
                 itemNumber: 1,
-                productName: offerConent.subtitle || offerConent.title || 'Produs',
+productName: (offerConent.title || offerConent.subtitle || 'Produs').replace('Oferta Comerciala: ', ''),
                 unitOfMeasurement: 'BUC',
                 quantity: 1,
                 unitPriceNoVAT: parsedPrice,
@@ -503,7 +503,7 @@ function App() {
 
             const defaultProduct = {
               itemNumber: 1,
-              productName: offerConent.subtitle || offerConent.title || 'Produs',
+productName: (offerConent.title || offerConent.subtitle || 'Produs').replace('Oferta Comerciala: ', ''),
               unitOfMeasurement: 'BUC',
               quantity: 1,
               unitPriceNoVAT: parsedPrice,
