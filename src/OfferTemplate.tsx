@@ -583,7 +583,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 <div className="confidence-tooltip">{initialContent.confidenceMessage}</div>
               </div>
             )}
-            <div className="header-left">
+            <div className="header-left" data-html2canvas-ignore="true">
               <EditableText
                 tagName="h1"
                 className="company-name"
@@ -591,7 +591,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 onChange={setCompanyName}
               />
             </div>
-            <div className="header-right">
+            <div className="header-right" data-html2canvas-ignore="true">
               <p className="offer-date">
                 <EditableText
                   tagName="strong"
@@ -630,12 +630,14 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
           {/* Title and Subtitle */}
           <div className="offer-title-section">
-            <EditableText
-              tagName="p"
-              className="offer-document-label"
-              value={customText.documentType}
-              onChange={(val) => updateCustomText('documentType', val)}
-            />
+            <div data-html2canvas-ignore="true">
+              <EditableText
+                tagName="p"
+                className="offer-document-label"
+                value={customText.documentType}
+                onChange={(val) => updateCustomText('documentType', val)}
+              />
+            </div>
 
 
             <EditableText
