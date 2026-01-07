@@ -161,12 +161,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || [])
     const [offerReference, setOfferReference] = useState(initialMetadata.offerReference || '')
     const [productImage, setProductImage] = useState<string | null>(null)
-    const [footerLegal, setFooterLegal] = useState(
-      initialMetadata.companyLegalName || initialMetadata.vatNumber || initialMetadata.registrationNumber
-        ? `${initialMetadata.companyLegalName || ''} | ${initialMetadata.vatNumber || ''} | ${initialMetadata.registrationNumber || ''}`
-        : ''
-    )
-    const [footerAddress, setFooterAddress] = useState('Strada Comerțului Nr. 10, Sector 1, București')
     const [products, setProducts] = useState(initialContent.products || [])
 
     // Debug: Log products state on every render
@@ -220,11 +214,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setTechnicalDetailsTable(initialContent.technicalDetailsTable || [])
       setOfferReference(initialMetadata.offerReference || '')
       setProductImage(initialContent.productImageUrl || null)
-      setFooterLegal(
-        initialMetadata.companyLegalName || initialMetadata.vatNumber || initialMetadata.registrationNumber
-          ? `${initialMetadata.companyLegalName || ''} | ${initialMetadata.vatNumber || ''} | ${initialMetadata.registrationNumber || ''}`
-          : ''
-      )
       setProducts(initialContent.products || [])
     }, [offerData, initialContent, initialMetadata])
 
@@ -725,18 +714,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
           {/* Footer */}
           <div className="offer-footer">
-            <EditableText
-              tagName="p"
-              className="footer-legal"
-              value={footerLegal}
-              onChange={setFooterLegal}
-            />
-            <EditableText
-              tagName="p"
-              className="footer-address"
-              value={footerAddress}
-              onChange={setFooterAddress}
-            />
             <EditableText
               tagName="p"
               className="footer-note"
