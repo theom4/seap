@@ -14,7 +14,7 @@ export interface OfferTemplateRef {
   generatePDF: () => Promise<Blob>
 }
 
-// --- 1. PRODUCTS TABLE PAGE ---
+// --- 1. PRODUCTS TABLE PAGE (LANDSCAPE) ---
 function getProductsTableHTML(products: Product[]) {
   if (!products || products.length === 0) {
     return ''
@@ -24,49 +24,50 @@ function getProductsTableHTML(products: Product[]) {
 
   const productsRows = products.map(product => `
     <tr>
-      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${product.itemNumber}</td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: left; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;"><strong style="color: #000 !important;">${product.productName}</strong></td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${product.unitOfMeasurement}</td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: center; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${product.quantity}</td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: right; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${typeof product.unitPriceNoVAT === 'number' ? product.unitPriceNoVAT.toFixed(2) : product.unitPriceNoVAT}</td>
-      <td style="border: 1px solid #000; padding: 10px; text-align: right; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important;">${typeof product.totalValueNoVAT === 'number' ? product.totalValueNoVAT.toFixed(2) : product.totalValueNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 3%;">${product.itemNumber}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: left; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 40%;"><strong style="color: #000 !important;">${product.productName}</strong></td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 8%;">${product.unitOfMeasurement}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 8%;">${product.quantity}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 18%;">${typeof product.unitPriceNoVAT === 'number' ? product.unitPriceNoVAT.toFixed(2) : product.unitPriceNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 18%;">${typeof product.totalValueNoVAT === 'number' ? product.totalValueNoVAT.toFixed(2) : product.totalValueNoVAT}</td>
     </tr>
   `).join('')
 
   return `
-    <div style="font-family: Arial, sans-serif; color: #000 !important; background: white; padding: 20mm 15mm; box-sizing: border-box;">
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed; color: #000 !important;">
+    <div style="font-family: Arial, sans-serif; color: #000 !important; background: white; padding: 15mm 20mm; box-sizing: border-box; width: 297mm; height: 210mm; display: flex; flex-direction: column;">
+      <h2 style="text-align: center; margin: 0 0 15mm 0; font-size: 14pt; font-weight: bold; color: #000 !important;">Tabel Produse</h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10mm; table-layout: fixed; color: #000 !important; flex: 1;">
         <thead>
           <tr>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Nr.<br/>crt.</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Denumire produs</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">U.M.</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Cantitati</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Pret unitar<br/>fara tva</th>
-            <th style="border: 1px solid #000; padding: 10px; background: #f5f5f5; text-align: center; font-size: 11pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2;">Valoare<br/>totala<br/>fara TVA</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 3%;">Nr.<br/>crt.</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 40%;">Denumire produs</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 8%;">U.M.</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 8%;">Cantitati</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 18%;">Pret unitar<br/>fara tva</th>
+            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 18%;">Valoare<br/>totala<br/>fara TVA</th>
           </tr>
         </thead>
         <tbody>
           ${productsRows}
           <tr>
-            <td colspan="6" style="border: 1px solid #000; padding: 12px; text-align: right; font-weight: bold; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important; background: #f5f5f5;">
+            <td colspan="6" style="border: 1px solid #000; padding: 10px; text-align: right; font-weight: bold; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; background: #f5f5f5;">
               TOTAL FARA TVA= ${totalNoVAT.toFixed(2)} LEI
             </td>
           </tr>
         </tbody>
       </table>
 
-      <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+      <div style="margin-top: auto; display: flex; justify-content: space-between; padding-top: 15mm;">
         <div style="flex: 1;">
-          <p style="margin: 0 0 10px 0; font-size: 11pt; color: #000 !important;"><strong style="color: #000 !important;">OFERTANTUL</strong></p>
-          <p style="margin: 0 0 5px 0; font-size: 11pt; color: #000 !important;"><strong style="color: #000 !important;">S.C. AS GREEN LAND S.R.L</strong></p>
-          <p style="margin: 0; font-size: 10pt; font-style: italic; color: #000 !important;">(denumirea/numele)</p>
+          <p style="margin: 0 0 8px 0; font-size: 10pt; color: #000 !important;"><strong style="color: #000 !important;">OFERTANTUL</strong></p>
+          <p style="margin: 0 0 3px 0; font-size: 10pt; color: #000 !important;"><strong style="color: #000 !important;">S.C. AS GREEN LAND S.R.L</strong></p>
+          <p style="margin: 0; font-size: 9pt; font-style: italic; color: #000 !important;">(denumirea/numele)</p>
         </div>
         <div style="flex: 1; text-align: right;">
-          <p style="margin: 0 0 5px 0; font-size: 10pt; color: #000 !important;">Preturile Nu Contin TVA</p>
-          <p style="margin: 0 0 5px 0; font-size: 10pt; color: #000 !important;">Transportul este inclus in pret</p>
-          <p style="margin: 0 0 5px 0; font-size: 10pt; color: #000 !important;">Plata prin cont de Trezorerie</p>
-          <p style="margin: 0; font-size: 10pt; color: #000 !important;">Termen de plata stabilt la semnarea contractului</p>
+          <p style="margin: 0 0 3px 0; font-size: 9pt; color: #000 !important;">Preturile Nu Contin TVA</p>
+          <p style="margin: 0 0 3px 0; font-size: 9pt; color: #000 !important;">Transportul este inclus in pret</p>
+          <p style="margin: 0 0 3px 0; font-size: 9pt; color: #000 !important;">Plata prin cont de Trezorerie</p>
+          <p style="margin: 0; font-size: 9pt; color: #000 !important;">Termen de plata stabilt la semnarea contractului</p>
         </div>
       </div>
     </div>
@@ -313,57 +314,45 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, annexImgHeight)
         document.body.removeChild(annexContainer)
 
-        // --- PAGE 2: Products Table (if products exist) ---
+        // --- PAGE 2: Products Table in Landscape (if products exist) ---
         if (products && products.length > 0) {
-          pdf.addPage()
+          pdf.addPage('l')
 
           const productsContainer = document.createElement('div')
           productsContainer.style.position = 'fixed'
           productsContainer.style.left = '0'
           productsContainer.style.top = '0'
-          productsContainer.style.width = '210mm'
-          productsContainer.style.minHeight = '297mm'
+          productsContainer.style.width = '297mm'
+          productsContainer.style.height = '210mm'
           productsContainer.style.backgroundColor = 'white'
           productsContainer.style.zIndex = '9999'
           productsContainer.style.visibility = 'hidden'
 
           const productsHTML = getProductsTableHTML(products)
-          console.log('Products HTML being inserted:', productsHTML.substring(0, 800))
 
           productsContainer.innerHTML = productsHTML
           document.body.appendChild(productsContainer)
 
           await new Promise((resolve) => setTimeout(resolve, 500))
 
-          const table = productsContainer.querySelector('table')
-          const thead = productsContainer.querySelector('thead')
-          const theadRows = thead ? thead.querySelectorAll('tr') : []
-          console.log('Table found:', !!table)
-          console.log('Thead found:', !!thead)
-          console.log('Thead rows:', theadRows.length)
-          if (theadRows.length > 0) {
-            console.log('First thead row HTML:', theadRows[0].innerHTML.substring(0, 200))
-          }
-          console.log('Container dimensions:', productsContainer.offsetWidth, 'x', productsContainer.offsetHeight)
-
           productsContainer.style.visibility = 'visible'
 
           const productsCanvas = await html2canvas(productsContainer, {
             scale: 2,
-            logging: true,
+            logging: false,
             backgroundColor: '#ffffff',
-            windowWidth: productsContainer.scrollWidth,
-            windowHeight: productsContainer.scrollHeight
+            windowWidth: 297 * 3.78,
+            windowHeight: 210 * 3.78
           })
-
-          console.log('Canvas dimensions:', productsCanvas.width, 'x', productsCanvas.height)
 
           productsContainer.style.visibility = 'hidden'
 
-          const productsImgHeight = (productsCanvas.height * pdfWidth) / productsCanvas.width
+          const landscapePdfWidth = pdf.internal.pageSize.getWidth()
+          const productsImgHeight = (productsCanvas.height * landscapePdfWidth) / productsCanvas.width
+
           const productsImgData = productsCanvas.toDataURL('image/jpeg', 0.8)
 
-          pdf.addImage(productsImgData, 'JPEG', 0, 0, pdfWidth, productsImgHeight)
+          pdf.addImage(productsImgData, 'JPEG', 0, 0, landscapePdfWidth, productsImgHeight)
           document.body.removeChild(productsContainer)
         }
 
