@@ -159,10 +159,8 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [mainMessage, setMainMessage] = useState(initialContent.mainMessage || '')
     const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage || '')
     const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || [])
-    const [offerDate, setOfferDate] = useState(initialMetadata.offerDate || '')
     const [offerReference, setOfferReference] = useState(initialMetadata.offerReference || '')
     const [productImage, setProductImage] = useState<string | null>(null)
-    const [companyName, setCompanyName] = useState(initialMetadata.companyName || '')
     const [footerLegal, setFooterLegal] = useState(
       initialMetadata.companyLegalName || initialMetadata.vatNumber || initialMetadata.registrationNumber
         ? `${initialMetadata.companyLegalName || ''} | ${initialMetadata.vatNumber || ''} | ${initialMetadata.registrationNumber || ''}`
@@ -179,7 +177,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     // State for "Static" labels that are now editable
     const [customText, setCustomText] = useState({
       productPageLabel: 'Pagină produs:',
-      documentType: 'Ofertă comercială',
       salutation: 'Stimate Client,',
       imageCaption: 'Fig 1. Vizualizare produs în showroom',
       techDetailsTitle: 'Descriere Tehnică Detaliată',
@@ -188,7 +185,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       validityTitle: 'Condiții de valabilitate:',
       validityText: 'Oferta este valabilă în timp ce stocul durează. Prețul include taxa verde. Vă rugăm să ne contactați pentru confirmarea comenzii sau să ne vizitați în showroom.',
       footerNote: 'Document generat electronic. Nu necesită stampilă.',
-      dateLabel: 'Data:',
       refLabel: 'Ref:',
     })
 
@@ -222,10 +218,8 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setMainMessage(initialContent.mainMessage || '')
       setTechnicalDetailsMessage(initialContent.technicalDetailsMessage || '')
       setTechnicalDetailsTable(initialContent.technicalDetailsTable || [])
-      setOfferDate(initialMetadata.offerDate || '')
       setOfferReference(initialMetadata.offerReference || '')
       setProductImage(initialContent.productImageUrl || null)
-      setCompanyName(initialMetadata.companyName || '')
       setFooterLegal(
         initialMetadata.companyLegalName || initialMetadata.vatNumber || initialMetadata.registrationNumber
           ? `${initialMetadata.companyLegalName || ''} | ${initialMetadata.vatNumber || ''} | ${initialMetadata.registrationNumber || ''}`
@@ -242,19 +236,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setThemeColors((prev) => ({ ...prev, [key]: value }))
     }
 
-    const formatDate = (dateString: string) => {
-      if (!dateString) return ''
-      try {
-        const date = new Date(dateString)
-        return date.toLocaleDateString('ro-RO', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
-      } catch {
-        return dateString
-      }
-    }
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
@@ -583,32 +564,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 <div className="confidence-tooltip">{initialContent.confidenceMessage}</div>
               </div>
             )}
-            <div className="header-left" data-html2canvas-ignore="true">
-              <EditableText
-                tagName="h1"
-                className="company-name"
-                value={companyName}
-                onChange={setCompanyName}
-              />
-            </div>
-            <div className="header-right" data-html2canvas-ignore="true">
-              <p className="offer-date">
-                <EditableText
-                  tagName="strong"
-                  value={customText.dateLabel}
-                  onChange={(val) => updateCustomText('dateLabel', val)}
-                  className="editable-text"
-                />{' '}
-                <input
-                  type="date"
-                  value={offerDate || ''}
-                  onChange={(e) => setOfferDate(e.target.value)}
-                  className="editable-date-input"
-                />
-                <span className="formatted-date-display" style={{ display: 'none' }}>
-                  {formatDate(offerDate) || 'N/A'}
-                </span>
-              </p>
+            <div className="header-right">
               <p className="offer-reference">
                 <EditableText
                   tagName="strong"
@@ -630,16 +586,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
           {/* Title and Subtitle */}
           <div className="offer-title-section">
-            <div data-html2canvas-ignore="true">
-              <EditableText
-                tagName="p"
-                className="offer-document-label"
-                value={customText.documentType}
-                onChange={(val) => updateCustomText('documentType', val)}
-              />
-            </div>
-
-
             <EditableText
               tagName="h2"
               className="offer-title"
