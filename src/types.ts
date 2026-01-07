@@ -37,6 +37,7 @@ export interface OfferContent {
 export interface OfferData {
   offerMetadata: OfferMetadata
   offerConent: OfferContent // Note: keeping the typo from the API response
+  offerContent?: OfferContent // Optional: Support for correct spelling as fallback
 }
 
 export interface WebhookResponseItem {
