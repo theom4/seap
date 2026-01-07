@@ -24,50 +24,68 @@ function getProductsTableHTML(products: Product[]) {
 
   const productsRows = products.map(product => `
     <tr>
-      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 3%;">${product.itemNumber}</td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: left; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 40%;"><strong style="color: #000 !important;">${product.productName}</strong></td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 8%;">${product.unitOfMeasurement}</td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 8%;">${product.quantity}</td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 18%;">${typeof product.unitPriceNoVAT === 'number' ? product.unitPriceNoVAT.toFixed(2) : product.unitPriceNoVAT}</td>
-      <td style="border: 1px solid #000; padding: 8px; text-align: right; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; width: 18%;">${typeof product.totalValueNoVAT === 'number' ? product.totalValueNoVAT.toFixed(2) : product.totalValueNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 6px 4px; text-align: center; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important;">${product.itemNumber}</td>
+      <td style="border: 1px solid #000; padding: 6px 4px; text-align: left; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important;"><strong style="color: #000 !important;">${product.productName}</strong></td>
+      <td style="border: 1px solid #000; padding: 6px 4px; text-align: center; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important;">${product.unitOfMeasurement}</td>
+      <td style="border: 1px solid #000; padding: 6px 4px; text-align: center; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important;">${product.quantity}</td>
+      <td style="border: 1px solid #000; padding: 6px 4px; text-align: right; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important;">${typeof product.unitPriceNoVAT === 'number' ? product.unitPriceNoVAT.toFixed(2) : product.unitPriceNoVAT}</td>
+      <td style="border: 1px solid #000; padding: 6px 4px; text-align: right; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important;">${typeof product.totalValueNoVAT === 'number' ? product.totalValueNoVAT.toFixed(2) : product.totalValueNoVAT}</td>
     </tr>
   `).join('')
 
   return `
-    <div style="font-family: Arial, sans-serif; color: #000 !important; background: white; padding: 15mm 20mm; box-sizing: border-box; width: 297mm; height: 210mm; display: flex; flex-direction: column;">
-      <h2 style="text-align: center; margin: 0 0 15mm 0; font-size: 14pt; font-weight: bold; color: #000 !important;">Tabel Produse</h2>
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10mm; table-layout: fixed; color: #000 !important; flex: 1;">
+    <div style="
+      font-family: Arial, sans-serif;
+      color: #000 !important;
+      background: white;
+      padding: 10mm 15mm;
+      box-sizing: border-box;
+      width: 297mm;
+      height: 210mm;
+      display: flex;
+      flex-direction: column;
+      page-break-inside: avoid;
+    ">
+      <h2 style="text-align: center; margin: 0 0 8mm 0; font-size: 16pt; font-weight: bold; color: #000 !important;">Tabel Produse</h2>
+      <table style="
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        color: #000 !important;
+      ">
         <thead>
           <tr>
-            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 3%;">Nr.<br/>crt.</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 40%;">Denumire produs</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 8%;">U.M.</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 8%;">Cantitati</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 18%;">Pret unitar<br/>fara tva</th>
-            <th style="border: 1px solid #000; padding: 8px; background: #f5f5f5; text-align: center; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.2; width: 18%;">Valoare<br/>totala<br/>fara TVA</th>
+            <th style="border: 1px solid #000; padding: 6px 4px; background: #f5f5f5; text-align: center; font-size: 10pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.3; width: 5%;">Nr.<br/>crt.</th>
+            <th style="border: 1px solid #000; padding: 6px 4px; background: #f5f5f5; text-align: center; font-size: 10pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.3; width: 40%;">Denumire produs</th>
+            <th style="border: 1px solid #000; padding: 6px 4px; background: #f5f5f5; text-align: center; font-size: 10pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.3; width: 8%;">U.M.</th>
+            <th style="border: 1px solid #000; padding: 6px 4px; background: #f5f5f5; text-align: center; font-size: 10pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.3; width: 10%;">Cantitati</th>
+            <th style="border: 1px solid #000; padding: 6px 4px; background: #f5f5f5; text-align: center; font-size: 10pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.3; width: 18%;">Pret unitar<br/>fara tva</th>
+            <th style="border: 1px solid #000; padding: 6px 4px; background: #f5f5f5; text-align: center; font-size: 10pt; font-weight: bold; font-family: Arial, sans-serif; color: #000 !important; line-height: 1.3; width: 19%;">Valoare totala<br/>fara TVA</th>
           </tr>
         </thead>
         <tbody>
           ${productsRows}
+        </tbody>
+        <tfoot>
           <tr>
-            <td colspan="6" style="border: 1px solid #000; padding: 10px; text-align: right; font-weight: bold; font-size: 10pt; font-family: Arial, sans-serif; color: #000 !important; background: #f5f5f5;">
+            <td colspan="6" style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; font-size: 11pt; font-family: Arial, sans-serif; color: #000 !important; background: #f5f5f5;">
               TOTAL FARA TVA= ${totalNoVAT.toFixed(2)} LEI
             </td>
           </tr>
-        </tbody>
+        </tfoot>
       </table>
 
-      <div style="margin-top: auto; display: flex; justify-content: space-between; padding-top: 15mm;">
+      <div style="margin-top: auto; display: flex; justify-content: space-between; padding-top: 10mm; align-items: flex-end;">
         <div style="flex: 1;">
-          <p style="margin: 0 0 8px 0; font-size: 10pt; color: #000 !important;"><strong style="color: #000 !important;">OFERTANTUL</strong></p>
-          <p style="margin: 0 0 3px 0; font-size: 10pt; color: #000 !important;"><strong style="color: #000 !important;">S.C. AS GREEN LAND S.R.L</strong></p>
-          <p style="margin: 0; font-size: 9pt; font-style: italic; color: #000 !important;">(denumirea/numele)</p>
+          <p style="margin: 0 0 6px 0; font-size: 11pt; color: #000 !important;"><strong style="color: #000 !important;">OFERTANTUL</strong></p>
+          <p style="margin: 0 0 3px 0; font-size: 11pt; color: #000 !important;"><strong style="color: #000 !important;">S.C. AS GREEN LAND S.R.L</strong></p>
+          <p style="margin: 0; font-size: 10pt; font-style: italic; color: #000 !important;">(denumirea/numele)</p>
         </div>
         <div style="flex: 1; text-align: right;">
-          <p style="margin: 0 0 3px 0; font-size: 9pt; color: #000 !important;">Preturile Nu Contin TVA</p>
-          <p style="margin: 0 0 3px 0; font-size: 9pt; color: #000 !important;">Transportul este inclus in pret</p>
-          <p style="margin: 0 0 3px 0; font-size: 9pt; color: #000 !important;">Plata prin cont de Trezorerie</p>
-          <p style="margin: 0; font-size: 9pt; color: #000 !important;">Termen de plata stabilt la semnarea contractului</p>
+          <p style="margin: 0 0 3px 0; font-size: 10pt; color: #000 !important;">Preturile Nu Contin TVA</p>
+          <p style="margin: 0 0 3px 0; font-size: 10pt; color: #000 !important;">Transportul este inclus in pret</p>
+          <p style="margin: 0 0 3px 0; font-size: 10pt; color: #000 !important;">Plata prin cont de Trezorerie</p>
+          <p style="margin: 0; font-size: 10pt; color: #000 !important;">Termen de plata stabilt la semnarea contractului</p>
         </div>
       </div>
     </div>
@@ -356,8 +374,8 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           document.body.removeChild(productsContainer)
         }
 
-        // --- PAGE 3: Main Offer - NOW LAST ---
-        pdf.addPage()
+        // --- PAGE 3: Main Offer - Back to Portrait ---
+        pdf.addPage('p')
 
         const canvas = await html2canvas(templateRef.current, {
           scale: 2,
