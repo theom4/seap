@@ -466,7 +466,7 @@ function App() {
         } else {
           // No PDFs to extract from, but we should still add default products from subtitle and productPrice
           const enrichedResponse = (responseData as OfferData[]).map((offer) => {
-            const offerConent = offer.offerConent || offer.offerContent || {}
+            const offerConent = offer.offerConent || {}
             // If products don't exist, create a default one from the subtitle and productPrice
             if (!offerConent.products || offerConent.products.length === 0) {
               const parsedPrice = parsePrice(offerConent.productPrice)
@@ -495,7 +495,7 @@ function App() {
         console.error('Error extracting products from PDFs:', productsError)
         // Still set the webhook response even if products extraction fails, but add default products
         const enrichedResponse = (responseData as OfferData[]).map((offer) => {
-          const offerConent = offer.offerConent || offer.offerContent || {}
+          const offerConent = offer.offerConent || {}
           if (!offerConent.products || offerConent.products.length === 0) {
             const parsedPrice = parsePrice(offerConent.productPrice)
 
