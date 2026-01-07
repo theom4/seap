@@ -438,13 +438,13 @@ function App() {
                 },
               }
             }
-            // No products extracted, create default from title and productPrice
+            // No products extracted, create default from subtitle and productPrice
             if (!offerConent.products || offerConent.products.length === 0) {
               const parsedPrice = parsePrice(offerConent.productPrice)
 
               const defaultProduct = {
                 itemNumber: 1,
-                productName: offerConent.title || 'Produs',
+                productName: offerConent.subtitle || offerConent.title || 'Produs',
                 unitOfMeasurement: 'BUC',
                 quantity: 1,
                 unitPriceNoVAT: parsedPrice,
@@ -464,16 +464,16 @@ function App() {
           setWebhookResponse(mergedResponse)
           console.log('Products successfully merged with webhook response')
         } else {
-          // No PDFs to extract from, but we should still add default products from title and productPrice
+          // No PDFs to extract from, but we should still add default products from subtitle and productPrice
           const enrichedResponse = (responseData as OfferData[]).map((offer) => {
             const offerConent = offer.offerConent || {}
-            // If products don't exist, create a default one from the title and productPrice
+            // If products don't exist, create a default one from the subtitle and productPrice
             if (!offerConent.products || offerConent.products.length === 0) {
               const parsedPrice = parsePrice(offerConent.productPrice)
 
               const defaultProduct = {
                 itemNumber: 1,
-                productName: offerConent.title || 'Produs',
+                productName: offerConent.subtitle || offerConent.title || 'Produs',
                 unitOfMeasurement: 'BUC',
                 quantity: 1,
                 unitPriceNoVAT: parsedPrice,
@@ -501,7 +501,7 @@ function App() {
 
             const defaultProduct = {
               itemNumber: 1,
-              productName: offerConent.title || 'Produs',
+              productName: offerConent.subtitle || offerConent.title || 'Produs',
               unitOfMeasurement: 'BUC',
               quantity: 1,
               unitPriceNoVAT: parsedPrice,
