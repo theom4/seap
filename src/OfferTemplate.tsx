@@ -38,13 +38,14 @@ function getProductsTableHTML(products: Product[]) {
       font-family: Arial, sans-serif;
       color: #000 !important;
       background: white;
-      padding: 10mm 15mm;
+      padding: 10mm 20mm;
       box-sizing: border-box;
       width: 297mm;
       height: 210mm;
       display: flex;
       flex-direction: column;
       page-break-inside: avoid;
+      margin: 0 auto;
     ">
       <h2 style="text-align: center; margin: 0 0 8mm 0; font-size: 16pt; font-weight: bold; color: #000 !important;">Tabel Produse</h2>
       <table style="
@@ -345,6 +346,8 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           productsContainer.style.backgroundColor = 'white'
           productsContainer.style.zIndex = '9999'
           productsContainer.style.visibility = 'hidden'
+          productsContainer.style.margin = '0'
+          productsContainer.style.padding = '0'
 
           const productsHTML = getProductsTableHTML(products)
 
@@ -360,17 +363,27 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             logging: false,
             backgroundColor: '#ffffff',
             windowWidth: 297 * 3.78,
-            windowHeight: 210 * 3.78
+            windowHeight: 210 * 3.78,
+            x: 0,
+            y: 0,
+            scrollX: 0,
+            scrollY: 0
           })
 
           productsContainer.style.visibility = 'hidden'
 
           const landscapePdfWidth = pdf.internal.pageSize.getWidth()
-          const productsImgHeight = (productsCanvas.height * landscapePdfWidth) / productsCanvas.width
+          const landscapePdfHeight = pdf.internal.pageSize.getHeight()
 
-          const productsImgData = productsCanvas.toDataURL('image/jpeg', 0.8)
+          const imgWidthInPdf = landscapePdfWidth
+          const imgHeightInPdf = (productsCanvas.height * landscapePdfWidth) / productsCanvas.width
 
-          pdf.addImage(productsImgData, 'JPEG', 0, 0, landscapePdfWidth, productsImgHeight)
+          const productsImgData = productsCanvas.toDataURL('image/jpeg', 0.95)
+
+          // Center vertically if needed
+          const yOffset = imgHeightInPdf < landscapePdfHeight ? (landscapePdfHeight - imgHeightInPdf) / 2 : 0
+
+          pdf.addImage(productsImgData, 'JPEG', 0, yOffset, imgWidthInPdf, imgHeightInPdf)
           document.body.removeChild(productsContainer)
         }
 
