@@ -639,9 +639,13 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               <p style={{ margin: 0, fontSize: '14px' }}>Nu există produse în tabel</p>
             </div>
           )}
-        </div>
+               </div>
+
+        {/* Spacing between Products Table and Main Offer */}
+        <div style={{ height: '40px' }}></div>
 
         <div ref={templateRef} className="offer-template">
+
           {/* Header */}
           <div className="offer-header">
             {initialContent.confidenceMessage && (
