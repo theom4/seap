@@ -179,7 +179,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [mainMessage, setMainMessage] = useState(initialContent.mainMessage || '')
     const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage || '')
     const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || [])
-    const [offerReference, setOfferReference] = useState(initialMetadata.offerReference || '')
+    const [, setOfferReference] = useState(initialMetadata.offerReference || '')
     const [productImage, setProductImage] = useState<string | null>(null)
     const [products, setProducts] = useState(initialContent.products || [])
 
