@@ -501,16 +501,19 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
 
       {/* Products Table Display - Read-only preview */}
+{/* Products Table Display - Read-only preview */}
 <div style={{ 
   marginTop: '30px', 
-  padding: '20px', 
+  padding: '40mm 20mm',
   border: '1px solid #ddd', 
   borderRadius: '4px', 
   backgroundColor: '#fff',
   pageBreakBefore: 'always',
   width: '210mm',
   minHeight: '297mm',
-  boxSizing: 'border-box'
+  boxSizing: 'border-box',
+  marginLeft: 'auto',
+  marginRight: 'auto'
 }}>
   <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', color: '#000' }}>
     Tabel Produse
