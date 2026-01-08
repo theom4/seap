@@ -642,21 +642,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               </div>
             )}
             <div className="header-right">
-              <p className="offer-reference">
-                <EditableText
-                  tagName="strong"
-                  value={customText.refLabel}
-                  onChange={(val) => updateCustomText('refLabel', val)}
-                  className="editable-text"
-                />{' '}
-                <input
-                  type="text"
-                  value={offerReference}
-                  onChange={(e) => setOfferReference(e.target.value)}
-                  placeholder="N/A"
-                  className="editable-text-input"
-                />
-              </p>
             </div>
           </div>
           <div className="header-divider"></div>
