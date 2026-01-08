@@ -487,15 +487,32 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         {/* Annex Page Preview - SHOWN FIRST */}
         <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
 
-        {/* Products Table Display - Read-only preview */}
-        <div style={{ marginTop: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#fff' }}>
-          <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', color: '#000' }}>
-            Tabel Produse
-          </h3>
+      {/* Products Table Display - Read-only preview */}
+<div style={{ 
+  marginTop: '30px', 
+  padding: '20px', 
+  border: '1px solid #ddd', 
+  borderRadius: '4px', 
+  backgroundColor: '#fff',
+  pageBreakBefore: 'always',
+  width: '210mm',
+  minHeight: '297mm',
+  boxSizing: 'border-box'
+}}>
+  <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', color: '#000' }}>
+    Tabel Produse
+  </h3>
 
-          {products.length > 0 ? (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', border: '1px solid #000', color: '#000' }}>
+  {products.length > 0 ? (
+    <div style={{ overflowX: 'visible' }}>
+      <table style={{ 
+        width: '100%', 
+        borderCollapse: 'collapse', 
+        backgroundColor: 'white', 
+        border: '1px solid #000', 
+        color: '#000',
+        tableLayout: 'fixed'
+      }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f5f5f5' }}>
                     <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px', color: '#000' }}>Nr.<br/>crt.</th>
