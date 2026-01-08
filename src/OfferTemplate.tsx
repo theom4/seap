@@ -539,30 +539,78 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                     <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px', color: '#000' }}>Valoare<br/>totala<br/>fara TVA</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {products.map((product: Product, index: number) => (
-                    <tr key={index}>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
-                        {product.itemNumber}
-                      </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'left', fontSize: '13px', color: '#000' }}>
-                        {product.productName}
-                      </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
-                        {product.unitOfMeasurement}
-                      </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
-                        {product.quantity}
-                      </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
-                        {product.unitPriceNoVAT.toFixed(2)}
-                      </td>
-                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
-                        {product.totalValueNoVAT.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+<tbody>
+  {products.map((product: Product, index: number) => (
+    <tr key={index}>
+      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
+        <input
+          type="number"
+          value={product.itemNumber}
+          onChange={(e) => {
+            const updated = [...products]
+            updated[index].itemNumber = parseInt(e.target.value) || 0
+            setProducts(updated)
+          }}
+          style={{ width: '100%', border: 'none', textAlign: 'center', fontSize: '13px', background: 'transparent' }}
+        />
+      </td>
+      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'left', fontSize: '13px', color: '#000' }}>
+        <input
+          type="text"
+          value={product.productName}
+          onChange={(e) => {
+            const updated = [...products]
+            updated[index].productName = e.target.value
+            setProducts(updated)
+          }}
+          style={{ width: '100%', border: 'none', textAlign: 'left', fontSize: '13px', background: 'transparent' }}
+        />
+      </td>
+      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
+        <input
+          type="text"
+          value={product.unitOfMeasurement}
+          onChange={(e) => {
+            const updated = [...products]
+            updated[index].unitOfMeasurement = e.target.value
+            setProducts(updated)
+          }}
+          style={{ width: '100%', border: 'none', textAlign: 'center', fontSize: '13px', background: 'transparent' }}
+        />
+      </td>
+      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
+        <input
+          type="number"
+          value={product.quantity}
+          onChange={(e) => {
+            const updated = [...products]
+            updated[index].quantity = parseInt(e.target.value) || 0
+            updated[index].totalValueNoVAT = updated[index].unitPriceNoVAT * updated[index].quantity
+            setProducts(updated)
+          }}
+          style={{ width: '100%', border: 'none', textAlign: 'center', fontSize: '13px', background: 'transparent' }}
+        />
+      </td>
+      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
+        <input
+          type="number"
+          step="0.01"
+          value={product.unitPriceNoVAT}
+          onChange={(e) => {
+            const updated = [...products]
+            updated[index].unitPriceNoVAT = parseFloat(e.target.value) || 0
+            updated[index].totalValueNoVAT = updated[index].quantity * updated[index].unitPriceNoVAT
+            setProducts(updated)
+          }}
+          style={{ width: '100%', border: 'none', textAlign: 'right', fontSize: '13px', background: 'transparent' }}
+        />
+      </td>
+      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
+        {product.totalValueNoVAT.toFixed(2)}
+      </td>
+    </tr>
+  ))}
+</tbody>
                 <tfoot>
                   <tr>
                     <td colSpan={6} style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: '#000' }}>
