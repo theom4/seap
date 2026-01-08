@@ -645,7 +645,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         <div style={{ height: '40px' }}></div>
 
         <div ref={templateRef} className="offer-template">
-
           {/* Header */}
           <div className="offer-header">
             {initialContent.confidenceMessage && (
