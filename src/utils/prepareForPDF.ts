@@ -11,16 +11,17 @@ export function prepareElementForPDF(element: HTMLElement): () => void {
   const inputReplacements: Array<{ input: HTMLElement; replacement: HTMLElement }> = []
   const textareaReplacements: Array<{ textarea: HTMLElement; replacement: HTMLElement }> = []
 
-  // Hide interactive elements
-  const hideSelectors = [
-    'button',
-    '.image-upload-input',
-    '.image-upload-label',
-    '.remove-image-button',
-    '.offer-template-actions',
-    '.editable-date-input',
-    '.offer-main-message',
-  ]
+ const hideSelectors = [
+  'button',
+  '.image-upload-input',
+  '.image-upload-label',
+  'label.image-upload-label',
+  '.remove-image-button',
+  '.offer-template-actions',
+  '.editable-date-input',
+  '.offer-main-message',
+  '.design-controls',
+]
 
   hideSelectors.forEach((selector) => {
     const elements = element.querySelectorAll<HTMLElement>(selector)
