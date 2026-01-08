@@ -723,12 +723,13 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 className="image-upload-input"
                 id={`image-upload-${initialContent.title}`}
               />
-              <label
-                htmlFor={`image-upload-${initialContent.title}`}
-                className="image-upload-label"
-              >
-                {productImage ? 'Change Image' : 'Upload Image'}
-              </label>
+             <label
+  htmlFor={`image-upload-${initialContent.title}`}
+  className="image-upload-label"
+  data-html2canvas-ignore="true"
+>
+  {productImage ? 'Change Image' : 'Upload Image'}
+</label>
             </div>
             <EditableText
               tagName="p"
