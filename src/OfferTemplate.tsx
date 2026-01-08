@@ -387,9 +387,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           document.body.removeChild(productsContainer)
         }
 
-        // --- PAGE 3: Main Offer - Back to Portrait ---
-        pdf.addPage('p')
-
+               // --- PAGE 3+: Main Offer - Back to Portrait with Multi-page Support ---
         const canvas = await html2canvas(templateRef.current, {
           scale: 2,
           useCORS: true,
@@ -397,12 +395,28 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           backgroundColor: '#ffffff'
         })
 
-        const imgHeight = (canvas.height * pdfWidth) / canvas.width
-        const imgData = canvas.toDataURL('image/jpeg', 0.8)
+        const imgData = canvas.toDataURL('image/jpeg', 1.0)
+        const imgWidth = 210 // A4 width in mm
+        const pageHeight = 297 // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width
+        let heightLeft = imgHeight
+        let position = 0
 
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight)
+        // Add the first page of the main offer
+        pdf.addPage('p')
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+
+        // Add subsequent pages if content is longer than one page
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight
+          pdf.addPage('p')
+          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
+          heightLeft -= pageHeight
+        }
 
         return pdf.output('blob')
+
 
       } catch (error) {
         console.error('Error in generateFinalPDF:', error)
