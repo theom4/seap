@@ -663,6 +663,12 @@
     display: none;
   }
 
+  .image-upload-label,
+  .remove-image-button,
+  .design-controls {
+    display: none !important;
+  }
+
   .offer-template {
     padding: 0;
     box-shadow: none;
