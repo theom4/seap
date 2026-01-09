@@ -725,21 +725,22 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             />
           </div>
 
-          {/* Product Image - Draggable and Positionable */}
+         {/* Product Image - Draggable and Positionable */}
           {productImage && (
             <div
               className="product-image-draggable"
               onMouseDown={handleMouseDown}
               style={{
-                position: 'absolute',
-                left: `${imagePos.x}px`,
-                top: `${imagePos.y}px`,
+                position: 'relative',
+                left: 'auto',
+                top: 'auto',
                 width: `${imageSize.width}px`,
                 cursor: isDragging ? 'grabbing' : 'grab',
-                zIndex: 9999,
+                zIndex: 1,
                 userSelect: 'none',
                 pointerEvents: 'auto',
-                display: 'block'
+                display: 'block',
+                margin: '20px auto'
               }}
               data-html2canvas-ignore="false"
             >
