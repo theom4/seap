@@ -183,36 +183,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [productImage, setProductImage] = useState<string | null>(null)
     const [products, setProducts] = useState(initialContent.products || [])
 
-    // --- Add these lines for Drag and Drop ---
-const [imagePos, setImagePos] = useState({ x: 0, y: 350 }); // Initial position
-const [isDragging, setIsDragging] = useState(false);
-const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-
-const handleMouseDown = (e: React.MouseEvent) => {
-  if (productImage) {
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - imagePos.x,
-      y: e.clientY - imagePos.y
-    });
-  }
-};
-
-const handleMouseMove = (e: React.MouseEvent) => {
-  if (isDragging) {
-    setImagePos({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
-  }
-};
-
-const handleMouseUp = () => {
-  setIsDragging(false);
-};
-// ------------------------------------------
-
-    
     // Debug: Log products state on every render
     console.log('OfferTemplate render - Products state:', products)
     console.log('OfferTemplate render - Products count:', products.length)
