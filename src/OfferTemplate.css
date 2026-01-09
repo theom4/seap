@@ -757,3 +757,29 @@
   page-break-before: always;
   margin-top: 1rem;
 }
+
+/* Resize Handle Styling */
+.resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: #3b82f6; /* Blue color like Canva */
+  border: 2px solid white;
+  border-radius: 50%;
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize; /* Diagonal resize cursor */
+  z-index: 110;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.resize-handle:hover {
+  transform: scale(1.2);
+  background-color: #2563eb;
+}
+
+/* Ensure the wrapper doesn't hide the handle */
+.product-image-wrapper {
+  position: relative;
+  overflow: visible !important;
+}
