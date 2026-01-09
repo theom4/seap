@@ -760,3 +760,19 @@
   position: relative;
   overflow: visible !important;
 }
+
+/* Draggable Image Styles */
+.product-image-draggable {
+  border: 2px dashed transparent;
+  transition: border-color 0.2s;
+}
+
+.product-image-draggable:hover {
+  border-color: #4CAF50;
+}
+
+.product-image-draggable img {
+  transition: transform 0.2s;
+}
+
+/* Hide UI elements during PDF generation via html2canvas is handled by data-html2canvas-ignore */

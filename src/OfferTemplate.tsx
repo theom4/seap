@@ -409,11 +409,17 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         }
 
                // --- PAGE 3+: Main Offer - Back to Portrait with Multi-page Support ---
+        // Wait a bit to ensure all images and styles are applied
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
         const canvas = await html2canvas(templateRef.current, {
           scale: 2,
           useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff'
+          allowTaint: true,
+          logging: true, // Enable logging for debugging if needed
+          backgroundColor: '#ffffff',
+          windowWidth: templateRef.current.scrollWidth,
+          windowHeight: templateRef.current.scrollHeight
         })
 
         const imgData = canvas.toDataURL('image/jpeg', 1.0)
@@ -715,7 +721,9 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 width: `${imageSize.width}px`,
                 cursor: isDragging ? 'grabbing' : 'grab',
                 zIndex: 1000,
-                userSelect: 'none'
+                userSelect: 'none',
+                /* Ensure it doesn't affect other elements */
+                pointerEvents: 'auto'
               }}
               data-html2canvas-ignore="false"
             >
@@ -723,13 +731,15 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 src={productImage}
                 alt="Product"
                 draggable="false"
+                crossOrigin="anonymous"
+                className="draggable-product-image"
                 style={{
                   width: '100%',
                   height: 'auto',
                   display: 'block',
                   borderRadius: '8px',
-                  border: '2px solid #4CAF50',
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                  border: 'none',
+                  boxShadow: 'none'
                 }}
               />
               <button
