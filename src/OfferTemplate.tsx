@@ -176,7 +176,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     // State for main content
     const [title, setTitle] = useState(initialContent.title || '')
     const [subtitle, setSubtitle] = useState(initialContent.subtitle || '')
-    const [mainMessage, setMainMessage] = useState(initialContent.mainMessage || '')
     const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage || '')
     const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || [])
     const [, setOfferReference] = useState(initialMetadata.offerReference || '')
@@ -278,7 +277,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
       setTitle(initialContent.title || '')
       setSubtitle(initialContent.subtitle || '')
-      setMainMessage(initialContent.mainMessage || '')
       setTechnicalDetailsMessage(initialContent.technicalDetailsMessage || '')
       setTechnicalDetailsTable(initialContent.technicalDetailsTable || [])
       setOfferReference(initialMetadata.offerReference || '')
@@ -728,23 +726,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             />
           </div>
 
-          {/* Main Message */}
-          <div className="offer-main-message">
-            <EditableText
-              tagName="p"
-              className="salutation"
-              value={customText.salutation}
-              onChange={(val) => updateCustomText('salutation', val)}
-            />
-            <textarea
-              value={mainMessage}
-              onChange={(e) => setMainMessage(e.target.value)}
-              className="editable-textarea message-content"
-              rows={4}
-            />
-          </div>
-
-                      {/* Product Image - Draggable & Resizable */}
+          {/* Product Image - Draggable & Resizable */}
                  <div 
             className="product-image-section"
             onMouseDown={handleMouseDown}
