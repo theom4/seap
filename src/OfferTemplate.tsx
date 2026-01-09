@@ -119,7 +119,7 @@ function getAnnexHTML() {
       </p>
 
       <p style="margin-bottom: 12px; text-align: justify;">
-        2. Ne angajăm ca, în cazul în care oferta noastră este stabilită câştigătoare, sa furnizam produsele
+        2. Ne angajăm ca, în cazul în care oferta noastră este stabilită căştigătoare, sa furnizam produsele
         în termen de 5 zile de la comanda.
       </p>
 
@@ -131,7 +131,7 @@ function getAnnexHTML() {
 
       <p style="margin-bottom: 12px; text-align: justify;">
         4. Pana la încheierea şi semnarea contractului de achiziţie publica aceasta oferta, împreună cu
-        comunicarea transmisă de dumneavoastră, prin care oferta noastră este stabilită câştigătoare, vor
+        comunicarea transmisă de dumneavoastră, prin care oferta noastră este stabilită căştigătoare, vor
         constitui un contract angajant între noi.
       </p>
 
@@ -146,7 +146,7 @@ function getAnnexHTML() {
       </div>
 
       <p style="margin-bottom: 12px; text-align: justify;">
-        6. Am înţeles şi consimtim ca, în cazul în care oferta noastră este stabilită ca fiind câştigătoare, sa
+        6. Am înţeles şi consimtim ca, în cazul în care oferta noastră este stabilită ca fiind căştigătoare, sa
         constituim garanţia de buna execuţie în conformitate cu prevederile din documentaţia de atribuire.
       </p>
 
@@ -184,48 +184,48 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
     // --- Add these lines for Drag and Drop ---
     // --- Add these lines for Drag and Drop & Resizing ---
-    const [imagePos, setImagePos] = useState({ x: 0, y: 350 });
-    const [imageSize, setImageSize] = useState({ width: 300 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [isResizing, setIsResizing] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 });
+    // const [imagePos, setImagePos] = useState({ x: 0, y: 350 });
+    // const [imageSize, setImageSize] = useState({ width: 300 });
+    // const [isDragging, setIsDragging] = useState(false);
+    // const [isResizing, setIsResizing] = useState(false);
+    // const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    // const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 });
 
-    const handleMouseDown = (e: React.MouseEvent) => {
-      if (productImage && !isResizing) {
-        setIsDragging(true);
-        setDragStart({
-          x: e.clientX - imagePos.x,
-          y: e.clientY - imagePos.y
-        });
-      }
-    };
+    // const handleMouseDown = (e: React.MouseEvent) => {
+    //   if (productImage && !isResizing) {
+    //     setIsDragging(true);
+    //     setDragStart({
+    //       x: e.clientX - imagePos.x,
+    //       y: e.clientY - imagePos.y
+    //     });
+    //   }
+    // };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-      if (isDragging) {
-        setImagePos({
-          x: e.clientX - dragStart.x,
-          y: e.clientY - dragStart.y
-        });
-      } else if (isResizing) {
-        const newWidth = Math.max(50, resizeStart.width + (e.clientX - resizeStart.x));
-        setImageSize({ width: newWidth });
-      }
-    };
+    // const handleMouseMove = (e: React.MouseEvent) => {
+    //   if (isDragging) {
+    //     setImagePos({
+    //       x: e.clientX - dragStart.x,
+    //       y: e.clientY - dragStart.y
+    //     });
+    //   } else if (isResizing) {
+    //     const newWidth = Math.max(50, resizeStart.width + (e.clientX - resizeStart.x));
+    //     setImageSize({ width: newWidth });
+    //   }
+    // };
 
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      setIsResizing(false);
-    };
+    // const handleMouseUp = () => {
+    //   setIsDragging(false);
+    //   setIsResizing(false);
+    // };
 
-    const handleResizeMouseDown = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setIsResizing(true);
-      setResizeStart({
-        x: e.clientX,
-        width: imageSize.width
-      });
-    };
+    // const handleResizeMouseDown = (e: React.MouseEvent) => {
+    //   e.stopPropagation();
+    //   setIsResizing(true);
+    //   setResizeStart({
+    //     x: e.clientX,
+    //     width: imageSize.width
+    //   });
+    // };
     // ----------------------------------------------------
 
 // ------------------------------------------
@@ -309,12 +309,12 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       }
     }
 
-    const handleRemoveImage = () => {
-      setProductImage(null)
-      if (imageInputRef.current) {
-        imageInputRef.current.value = ''
-      }
-    }
+    // const handleRemoveImage = () => {
+    //   setProductImage(null)
+    //   if (imageInputRef.current) {
+    //     imageInputRef.current.value = ''
+    //   }
+    // }
 
     const handleTableFieldChange = (
       index: number,
@@ -349,54 +349,31 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         annexContainer.style.left = '0'
         annexContainer.style.top = '0'
         annexContainer.style.width = '210mm'
-        annexContainer.style.minHeight = '297mm'
-        annexContainer.style.backgroundColor = 'white'
-        annexContainer.style.padding = '20mm'
-        annexContainer.style.zIndex = '9999'
-        annexContainer.style.visibility = 'hidden'
-
+        annexContainer.style.background = 'white'
         annexContainer.innerHTML = getAnnexHTML()
         document.body.appendChild(annexContainer)
-
-        await new Promise((resolve) => setTimeout(resolve, 500))
-
-        annexContainer.style.visibility = 'visible'
 
         const annexCanvas = await html2canvas(annexContainer, {
           scale: 2,
           logging: false,
-          backgroundColor: '#ffffff',
-          windowWidth: annexContainer.scrollWidth,
-          windowHeight: annexContainer.scrollHeight
+          backgroundColor: '#ffffff'
         })
 
-        annexContainer.style.visibility = 'hidden'
-
-        const annexImgHeight = (annexCanvas.height * pdfWidth) / annexCanvas.width
-        const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.8)
-
-        pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, annexImgHeight)
+        const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.95)
+        pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, (annexCanvas.height * pdfWidth) / annexCanvas.width)
         document.body.removeChild(annexContainer)
 
-        // --- PAGE 2: Products Table in Landscape (if products exist) ---
+        // --- PAGE 2: Products Table (Landscape) ---
         if (products && products.length > 0) {
           pdf.addPage('l')
-
           const productsContainer = document.createElement('div')
           productsContainer.style.position = 'fixed'
           productsContainer.style.left = '0'
           productsContainer.style.top = '0'
           productsContainer.style.width = '297mm'
-          productsContainer.style.height = '210mm'
-          productsContainer.style.backgroundColor = 'white'
-          productsContainer.style.zIndex = '9999'
+          productsContainer.style.background = 'white'
           productsContainer.style.visibility = 'hidden'
-          productsContainer.style.margin = '0'
-          productsContainer.style.padding = '0'
-
-          const productsHTML = getProductsTableHTML(products)
-
-          productsContainer.innerHTML = productsHTML
+          productsContainer.innerHTML = getProductsTableHTML(products)
           document.body.appendChild(productsContainer)
 
           await new Promise((resolve) => setTimeout(resolve, 500))
@@ -560,7 +537,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
 
       {/* Products Table Display - Read-only preview */}
-{/* Products Table Display - Read-only preview */}
 <div style={{ 
   marginTop: '30px', 
   padding: '40mm 20mm',
@@ -684,7 +660,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               <p style={{ margin: 0, fontSize: '14px' }}>Nu există produse în tabel</p>
             </div>
           )}
-               </div>
+</div>
 
         {/* Spacing between Products Table and Main Offer */}
         <div style={{ height: '40px' }}></div>
@@ -807,10 +783,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 style={{ display: 'none' }}
               />
             </div>
-          </div>
-
-          {/* Technical Description */}
-          <div className="technical-description">
 
               <label
                 htmlFor={`image-upload-${initialContent.title}`}
@@ -820,10 +792,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               >
                 {productImage ? 'Change Image' : 'Upload Image'}
               </label>
-            </div>
           </div>
-
-
 
           {/* Technical Description */}
           <div className="technical-description">
