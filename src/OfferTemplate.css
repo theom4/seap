@@ -41,9 +41,9 @@
   --theme-text: #1f2933;
   --theme-bg: #ffffff;
 
+  width: 210mm;
+  min-height: 297mm;
   padding: 2.5rem 2.75rem;
-
-  max-width: 210mm;
   margin: 0 auto;
   background: var(--theme-bg);
   font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue',
@@ -51,6 +51,7 @@
   color: var(--theme-text);
   line-height: 1.7;
   letter-spacing: 0.01em;
+  box-sizing: border-box; /* Ensure padding is included in the total width/height */
 }
 
 /* Header */
