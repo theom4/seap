@@ -828,7 +828,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       fontWeight: '600'
     }}
   >
-    + Add Row
+    + Adauga produs
   </button>
 </div>
 
