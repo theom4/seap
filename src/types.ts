@@ -25,7 +25,6 @@ export interface Product {
 export interface OfferContent {
   title: string
   subtitle: string
-  mainMessage: string
   technicalDetailsMessage: string
   technicalDetailsTable: TechnicalDetail[]
   productPrice: string

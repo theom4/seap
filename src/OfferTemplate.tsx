@@ -239,7 +239,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     // State for "Static" labels that are now editable
     const [customText, setCustomText] = useState({
       productPageLabel: 'Pagină produs:',
-      salutation: 'Stimate Client,',
       imageCaption: 'Fig 1. Vizualizare produs în showroom',
       techDetailsTitle: 'Descriere Tehnică Detaliată',
       specialPriceLabel: 'PRET SPECIAL DE OFERTĂ',

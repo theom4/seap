@@ -215,22 +215,6 @@
   opacity: 0.8;
 }
 
-/* Main Message */
-.offer-main-message {
-  margin-bottom: 2.25rem;
-}
-
-.salutation {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--theme-text);
-}
-
-.message-content {
-  text-align: justify;
-  margin-bottom: 0;
-}
-
 /* Product Image */
 .product-image-section {
   width: fit-content;

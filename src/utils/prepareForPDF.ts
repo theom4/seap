@@ -19,7 +19,6 @@ export function prepareElementForPDF(element: HTMLElement): () => void {
   '.remove-image-button',
   '.offer-template-actions',
   '.editable-date-input',
-  '.offer-main-message',
   '.design-controls',
 ]
 
