@@ -182,50 +182,49 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [productImage, setProductImage] = useState<string | null>(null)
     const [products, setProducts] = useState(initialContent.products || [])
 
-    // --- Add these lines for Drag and Drop ---
     // --- Add these lines for Drag and Drop & Resizing ---
-    // const [imagePos, setImagePos] = useState({ x: 0, y: 350 });
-    // const [imageSize, setImageSize] = useState({ width: 300 });
-    // const [isDragging, setIsDragging] = useState(false);
-    // const [isResizing, setIsResizing] = useState(false);
-    // const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    // const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 });
+    const [imagePos, setImagePos] = useState({ x: 0, y: 350 });
+    const [imageSize, setImageSize] = useState({ width: 300 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 });
 
-    // const handleMouseDown = (e: React.MouseEvent) => {
-    //   if (productImage && !isResizing) {
-    //     setIsDragging(true);
-    //     setDragStart({
-    //       x: e.clientX - imagePos.x,
-    //       y: e.clientY - imagePos.y
-    //     });
-    //   }
-    // };
+    const handleMouseDown = (e: React.MouseEvent) => {
+      if (productImage && !isResizing) {
+        setIsDragging(true);
+        setDragStart({
+          x: e.clientX - imagePos.x,
+          y: e.clientY - imagePos.y
+        });
+      }
+    };
 
-    // const handleMouseMove = (e: React.MouseEvent) => {
-    //   if (isDragging) {
-    //     setImagePos({
-    //       x: e.clientX - dragStart.x,
-    //       y: e.clientY - dragStart.y
-    //     });
-    //   } else if (isResizing) {
-    //     const newWidth = Math.max(50, resizeStart.width + (e.clientX - resizeStart.x));
-    //     setImageSize({ width: newWidth });
-    //   }
-    // };
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (isDragging) {
+        setImagePos({
+          x: e.clientX - dragStart.x,
+          y: e.clientY - dragStart.y
+        });
+      } else if (isResizing) {
+        const newWidth = Math.max(50, resizeStart.width + (e.clientX - resizeStart.x));
+        setImageSize({ width: newWidth });
+      }
+    };
 
-    // const handleMouseUp = () => {
-    //   setIsDragging(false);
-    //   setIsResizing(false);
-    // };
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      setIsResizing(false);
+    };
 
-    // const handleResizeMouseDown = (e: React.MouseEvent) => {
-    //   e.stopPropagation();
-    //   setIsResizing(true);
-    //   setResizeStart({
-    //     x: e.clientX,
-    //     width: imageSize.width
-    //   });
-    // };
+    const handleResizeMouseDown = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsResizing(true);
+      setResizeStart({
+        x: e.clientX,
+        width: imageSize.width
+      });
+    };
     // ----------------------------------------------------
 
 // ------------------------------------------
@@ -665,7 +664,12 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         {/* Spacing between Products Table and Main Offer */}
         <div style={{ height: '40px' }}></div>
 
-        <div ref={templateRef} className="offer-template">
+        <div 
+          ref={templateRef} 
+          className="offer-template"
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        >
           {/* Header */}
           <div className="offer-header">
             {initialContent.confidenceMessage && (
@@ -699,81 +703,112 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             />
           </div>
 
-          {/* Product Image - Centered and Flowing */}
-          <div 
-            className="product-image-section"
-            style={{
-              position: 'relative',
-              width: '100%',
-              maxWidth: '500px',
-              margin: '20px auto',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              zIndex: 10,
-            }}
-          >
-            <div className="product-image-container" style={{ position: 'relative', width: '100%' }}>
-              {productImage ? (
-                <div className="product-image-wrapper" style={{ width: '100%', textAlign: 'center' }}>
-                  <img 
-                    src={productImage} 
-                    alt="Product" 
-                    className="product-image" 
-                    draggable="false" 
-                    style={{ 
-                      maxWidth: '100%', 
-                      height: 'auto', 
-                      display: 'block',
-                      margin: '0 auto',
-                      borderRadius: '8px',
-                      border: '1px solid #eee'
-                    }} 
-                  />
-                  
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="remove-image-button"
-                    data-html2canvas-ignore="true"
-                    style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      backgroundColor: '#ff4d4f',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '25px',
-                      height: '25px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ) : (
-                <div 
-                  className="product-image-placeholder"
-                  onClick={() => imageInputRef.current?.click()}
-                  style={{
-                    width: '100%',
-                    height: '200px',
-                    border: '2px dashed #ddd',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    backgroundColor: '#fafafa'
-                  }}
-                >
-                  <span style={{ color: '#999' }}>Click to Upload Product Image</span>
-                </div>
-              )}
+          {/* Product Image - Draggable and Positionable */}
+          {productImage && (
+            <div
+              className="product-image-draggable"
+              onMouseDown={handleMouseDown}
+              style={{
+                position: 'absolute',
+                left: `${imagePos.x}px`,
+                top: `${imagePos.y}px`,
+                width: `${imageSize.width}px`,
+                cursor: isDragging ? 'grabbing' : 'grab',
+                zIndex: 1000,
+                userSelect: 'none'
+              }}
+              data-html2canvas-ignore="false"
+            >
+              <img
+                src={productImage}
+                alt="Product"
+                draggable="false"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  borderRadius: '8px',
+                  border: '2px solid #4CAF50',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="remove-image-button"
+                data-html2canvas-ignore="true"
+                style={{
+                  position: 'absolute',
+                  top: '-10px',
+                  right: '-10px',
+                  backgroundColor: '#ff4d4f',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '30px',
+                  height: '30px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                }}
+              >
+                ×
+              </button>
+              <div
+                onMouseDown={handleResizeMouseDown}
+                data-html2canvas-ignore="true"
+                style={{
+                  position: 'absolute',
+                  bottom: '-10px',
+                  right: '-10px',
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: '#2196F3',
+                  borderRadius: '50%',
+                  cursor: 'nwse-resize',
+                  border: '2px solid white',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                }}
+              />
+            </div>
+          )}
+
+          {/* Image Upload Section */}
+          {!productImage && (
+            <div 
+              className="product-image-section"
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '500px',
+                margin: '20px auto',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                zIndex: 10,
+              }}
+            >
+              <div 
+                className="product-image-placeholder"
+                onClick={() => imageInputRef.current?.click()}
+                style={{
+                  width: '100%',
+                  height: '200px',
+                  border: '2px dashed #ddd',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  backgroundColor: '#fafafa'
+                }}
+              >
+                <span style={{ color: '#999' }}>Click to Upload Product Image</span>
+              </div>
               
               <input
                 type="file"
@@ -782,17 +817,17 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 accept="image/*"
                 style={{ display: 'none' }}
               />
-            </div>
 
               <label
                 className="image-upload-label"
                 data-html2canvas-ignore="true"
                 onClick={() => imageInputRef.current?.click()}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', marginTop: '10px' }}
               >
-                {productImage ? 'Change Image' : 'Upload Image'}
+                Upload Image
               </label>
-          </div>
+            </div>
+          )}
 
           {/* Technical Description */}
           <div className="technical-description">
