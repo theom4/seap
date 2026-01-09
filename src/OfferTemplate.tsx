@@ -301,6 +301,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         reader.onload = (event) => {
           const result = event.target?.result
           if (typeof result === 'string') {
+            // Use data URL directly to avoid CORS issues during PDF generation
             setProductImage(result)
           }
         }
@@ -416,10 +417,19 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           scale: 2,
           useCORS: true,
           allowTaint: true,
-          logging: true, // Enable logging for debugging if needed
+          logging: true,
           backgroundColor: '#ffffff',
-          windowWidth: templateRef.current.scrollWidth,
-          windowHeight: templateRef.current.scrollHeight
+          // Use a fixed width to match the A4 portrait aspect ratio
+          width: templateRef.current.offsetWidth,
+          height: templateRef.current.offsetHeight,
+          // Ensure absolute elements are captured correctly
+          onclone: (clonedDoc) => {
+            const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement;
+            if (clonedTemplate) {
+              clonedTemplate.style.overflow = 'visible';
+              clonedTemplate.style.position = 'relative';
+            }
+          }
         })
 
         const imgData = canvas.toDataURL('image/jpeg', 1.0)
@@ -720,10 +730,11 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 top: `${imagePos.y}px`,
                 width: `${imageSize.width}px`,
                 cursor: isDragging ? 'grabbing' : 'grab',
-                zIndex: 1000,
+                zIndex: 9999, // Very high z-index to ensure it's on top
                 userSelect: 'none',
                 /* Ensure it doesn't affect other elements */
-                pointerEvents: 'auto'
+                pointerEvents: 'auto',
+                display: 'block' // Ensure it's visible
               }}
               data-html2canvas-ignore="false"
             >

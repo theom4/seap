@@ -772,7 +772,7 @@
 }
 
 .product-image-draggable img {
-  transition: transform 0.2s;
+  /* Removed transition to prevent capture issues during PDF generation */
 }
 
 /* Hide UI elements during PDF generation via html2canvas is handled by data-html2canvas-ignore */
