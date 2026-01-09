@@ -755,37 +755,82 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             />
           </div>
 
-          {/* Technical Specifications Table */}
-          <div className="technical-table-section">
-            <table className="technical-table">
-              <tbody>
-                {Array.isArray(technicalDetailsTable) && technicalDetailsTable.map((detail: TechnicalDetail, index: number) => (
-                  <tr key={index}>
-                    <td className="table-title">
-                      <input
-                        type="text"
-                        value={detail.itemTitle}
-                        onChange={(e) =>
-                          handleTableFieldChange(index, 'itemTitle', e.target.value)
-                        }
-                        className="editable-table-input"
-                      />
-                    </td>
-                    <td className="table-description">
-                      <input
-                        type="text"
-                        value={detail.itemDescription}
-                        onChange={(e) =>
-                          handleTableFieldChange(index, 'itemDescription', e.target.value)
-                        }
-                        className="editable-table-input"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+         {/* Technical Specifications Table */}
+<div className="technical-table-section">
+  <table className="technical-table">
+    <tbody>
+      {Array.isArray(technicalDetailsTable) && technicalDetailsTable.map((detail: TechnicalDetail, index: number) => (
+        <tr key={index}>
+          <td className="table-title">
+            <input
+              type="text"
+              value={detail.itemTitle}
+              onChange={(e) =>
+                handleTableFieldChange(index, 'itemTitle', e.target.value)
+              }
+              className="editable-table-input"
+            />
+          </td>
+          <td className="table-description">
+            <input
+              type="text"
+              value={detail.itemDescription}
+              onChange={(e) =>
+                handleTableFieldChange(index, 'itemDescription', e.target.value)
+              }
+              className="editable-table-input"
+            />
+          </td>
+          <td style={{ border: 'none', background: 'transparent', width: '40px', padding: '4px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                const updated = technicalDetailsTable.filter((_, i) => i !== index)
+                setTechnicalDetailsTable(updated)
+              }}
+              data-html2canvas-ignore="true"
+              style={{
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+              title="Delete row"
+            >
+              ×
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <button
+    type="button"
+    onClick={() => {
+      setTechnicalDetailsTable([
+        ...technicalDetailsTable,
+        { itemTitle: '', itemDescription: '' }
+      ])
+    }}
+    data-html2canvas-ignore="true"
+    style={{
+      marginTop: '10px',
+      padding: '8px 16px',
+      background: '#3b82f6',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '600'
+    }}
+  >
+    + Add Row
+  </button>
+</div>
 
           {/* Validity Conditions */}
           <div className="validity-section">
