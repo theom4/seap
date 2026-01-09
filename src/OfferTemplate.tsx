@@ -309,12 +309,12 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       }
     }
 
-    // const handleRemoveImage = () => {
-    //   setProductImage(null)
-    //   if (imageInputRef.current) {
-    //     imageInputRef.current.value = ''
-    //   }
-    // }
+    const handleRemoveImage = () => {
+      setProductImage(null)
+      if (imageInputRef.current) {
+        imageInputRef.current.value = ''
+      }
+    }
 
     const handleTableFieldChange = (
       index: number,
@@ -733,7 +733,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                   
                   <button
                     type="button"
-                    onClick={() => setProductImage(null)}
+                    onClick={handleRemoveImage}
                     className="remove-image-button"
                     data-html2canvas-ignore="true"
                     style={{
@@ -785,10 +785,10 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             </div>
 
               <label
-                htmlFor={`image-upload-${initialContent.title}`}
                 className="image-upload-label"
                 data-html2canvas-ignore="true"
-                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => imageInputRef.current?.click()}
+                style={{ cursor: 'pointer' }}
               >
                 {productImage ? 'Change Image' : 'Upload Image'}
               </label>
