@@ -419,15 +419,21 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           allowTaint: true,
           logging: true,
           backgroundColor: '#ffffff',
-          // Use a fixed width to match the A4 portrait aspect ratio
           width: templateRef.current.offsetWidth,
           height: templateRef.current.offsetHeight,
-          // Ensure absolute elements are captured correctly
           onclone: (clonedDoc) => {
             const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement;
             if (clonedTemplate) {
               clonedTemplate.style.overflow = 'visible';
               clonedTemplate.style.position = 'relative';
+              
+              // Explicitly ensure the draggable image is visible in the clone
+              const draggableImg = clonedTemplate.querySelector('.product-image-draggable') as HTMLElement;
+              if (draggableImg) {
+                draggableImg.style.display = 'block';
+                draggableImg.style.visibility = 'visible';
+                draggableImg.style.opacity = '1';
+              }
             }
           }
         })
@@ -730,11 +736,10 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 top: `${imagePos.y}px`,
                 width: `${imageSize.width}px`,
                 cursor: isDragging ? 'grabbing' : 'grab',
-                zIndex: 9999, // Very high z-index to ensure it's on top
+                zIndex: 9999,
                 userSelect: 'none',
-                /* Ensure it doesn't affect other elements */
                 pointerEvents: 'auto',
-                display: 'block' // Ensure it's visible
+                display: 'block'
               }}
               data-html2canvas-ignore="false"
             >
@@ -798,57 +803,43 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             </div>
           )}
 
-          {/* Image Upload Section */}
-          {!productImage && (
-            <div 
-              className="product-image-section"
-              style={{
-                position: 'relative',
-                width: '100%',
-                maxWidth: '500px',
-                margin: '20px auto',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                zIndex: 10,
-              }}
-            >
-              <div 
-                className="product-image-placeholder"
+          {/* Image Upload Section - Moved to a non-disruptive location */}
+          <div 
+            className="image-upload-controls"
+            data-html2canvas-ignore="true"
+            style={{
+              position: 'absolute',
+              top: '10px',
+              left: '10px',
+              zIndex: 100,
+            }}
+          >
+            <input
+              type="file"
+              ref={imageInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              style={{ display: 'none' }}
+            />
+            {!productImage && (
+              <button
+                type="button"
                 onClick={() => imageInputRef.current?.click()}
                 style={{
-                  width: '100%',
-                  height: '200px',
-                  border: '2px dashed #ddd',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  padding: '8px 16px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
                   cursor: 'pointer',
-                  backgroundColor: '#fafafa'
+                  fontSize: '14px',
+                  fontWeight: '600'
                 }}
               >
-                <span style={{ color: '#999' }}>Click to Upload Product Image</span>
-              </div>
-              
-              <input
-                type="file"
-                ref={imageInputRef}
-                onChange={handleImageUpload}
-                accept="image/*"
-                style={{ display: 'none' }}
-              />
-
-              <label
-                className="image-upload-label"
-                data-html2canvas-ignore="true"
-                onClick={() => imageInputRef.current?.click()}
-                style={{ cursor: 'pointer', marginTop: '10px' }}
-              >
-                Upload Image
-              </label>
-            </div>
-          )}
+                + Upload Product Image
+              </button>
+            )}
+          </div>
 
           {/* Technical Description */}
           <div className="technical-description">
