@@ -707,8 +707,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             </div>
           </div>
           <div className="header-divider"></div>
-
-          {/* Title and Subtitle */}
+                    {/* Title and Subtitle */}
           <div className="offer-title-section">
             <EditableText
               tagName="h2"
@@ -724,130 +723,95 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             />
           </div>
 
-       {/* Product Image - Centered and Flowing */}
-<div 
-  className="product-image-section"
-  style={{
-    position: 'relative',
-    width: '100%',
-    maxWidth: '500px',
-    margin: '20px auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    zIndex: 10,
-  }}
->
-  <div className="product-image-container" style={{ position: 'relative', width: '100%' }}>
-    {productImage ? (
-      <div className="product-image-wrapper" style={{ width: '100%', textAlign: 'center' }}>
-        <img 
-          src={productImage} 
-          alt="Product" 
-          className="product-image" 
-          draggable="false" 
-          style={{ 
-            maxWidth: '100%', 
-            height: 'auto', 
-            display: 'block',
-            margin: '0 auto',
-            borderRadius: '8px',
-            border: '1px solid #eee'
-          }} 
-        />
-        
-        <button
-          onClick={() => setProductImage(null)}
-          className="remove-image-button"
-          data-html2canvas-ignore="true"
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            backgroundColor: '#ff4d4f',
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            width: '25px',
-            height: '25px',
-            cursor: 'pointer'
-          }}
-        >
-          ×
-        </button>
-      </div>
-    ) : (
-      <div 
-        className="product-image-placeholder"
-        onClick={() => imageInputRef.current?.click()}
-        style={{
-          width: '100%',
-          height: '200px',
-          border: '2px dashed #ddd',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          backgroundColor: '#fafafa'
-        }}
-      >
-        <span style={{ color: '#999' }}>Click to Upload Product Image</span>
-      </div>
-    )}
-    
-    <input
-      type="file"
-      ref={imageInputRef}
-      onChange={handleImageUpload}
-      accept="image/*"
-      style={{ display: 'none' }}
-    />
-  </div>
-</div>
-
-
+          {/* Product Image - Centered and Flowing */}
+          <div 
+            className="product-image-section"
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: '500px',
+              margin: '20px auto',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              zIndex: 10,
+            }}
+          >
             <div className="product-image-container" style={{ position: 'relative', width: '100%' }}>
               {productImage ? (
-                <div className="product-image-wrapper" style={{ width: '100%' }}>
+                <div className="product-image-wrapper" style={{ width: '100%', textAlign: 'center' }}>
                   <img 
                     src={productImage} 
                     alt="Product" 
                     className="product-image" 
                     draggable="false" 
-                    style={{ width: '100%', height: 'auto', display: 'block' }} 
+                    style={{ 
+                      maxWidth: '100%', 
+                      height: 'auto', 
+                      display: 'block',
+                      margin: '0 auto',
+                      borderRadius: '8px',
+                      border: '1px solid #eee'
+                    }} 
                   />
                   
-                  {/* Resize Handle (Bottom Right) */}
-                  <div 
-                    className="resize-handle"
-                    onMouseDown={handleResizeMouseDown}
-                    data-html2canvas-ignore="true"
-                  />
-
                   <button
                     type="button"
-                    onClick={handleRemoveImage}
+                    onClick={() => setProductImage(null)}
                     className="remove-image-button"
-                    title="Remove image"
-                    onMouseDown={(e) => e.stopPropagation()}
+                    data-html2canvas-ignore="true"
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      backgroundColor: '#ff4d4f',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '25px',
+                      height: '25px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
                     ×
                   </button>
                 </div>
               ) : (
-                <div className="product-image-placeholder">
-                  <p className="image-placeholder-text">Product Image</p>
+                <div 
+                  className="product-image-placeholder"
+                  onClick={() => imageInputRef.current?.click()}
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    border: '2px dashed #ddd',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    backgroundColor: '#fafafa'
+                  }}
+                >
+                  <span style={{ color: '#999' }}>Click to Upload Product Image</span>
                 </div>
               )}
+              
               <input
-                ref={imageInputRef}
                 type="file"
-                accept="image/*"
+                ref={imageInputRef}
                 onChange={handleImageUpload}
-                className="image-upload-input"
-                id={`image-upload-${initialContent.title}`}
+                accept="image/*"
+                style={{ display: 'none' }}
               />
+            </div>
+          </div>
+
+          {/* Technical Description */}
+          <div className="technical-description">
+
               <label
                 htmlFor={`image-upload-${initialContent.title}`}
                 className="image-upload-label"
