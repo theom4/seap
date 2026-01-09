@@ -233,8 +233,7 @@
 
 /* Product Image */
 .product-image-section {
-  margin: 2.5rem 0;
-  text-align: center;
+  width: fit-content;
 }
 
 .product-image-placeholder {
