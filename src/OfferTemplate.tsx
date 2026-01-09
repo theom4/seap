@@ -183,6 +183,36 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [productImage, setProductImage] = useState<string | null>(null)
     const [products, setProducts] = useState(initialContent.products || [])
 
+    // --- Add these lines for Drag and Drop ---
+const [imagePos, setImagePos] = useState({ x: 0, y: 350 }); // Initial position
+const [isDragging, setIsDragging] = useState(false);
+const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+const handleMouseDown = (e: React.MouseEvent) => {
+  if (productImage) {
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - imagePos.x,
+      y: e.clientY - imagePos.y
+    });
+  }
+};
+
+const handleMouseMove = (e: React.MouseEvent) => {
+  if (isDragging) {
+    setImagePos({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  }
+};
+
+const handleMouseUp = () => {
+  setIsDragging(false);
+};
+// ------------------------------------------
+
+    
     // Debug: Log products state on every render
     console.log('OfferTemplate render - Products state:', products)
     console.log('OfferTemplate render - Products count:', products.length)
@@ -695,17 +725,33 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             />
           </div>
 
-          {/* Product Image */}
-          <div className="product-image-section">
+                {/* Product Image - Now Draggable */}
+          <div 
+            className="product-image-section"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{
+              position: 'absolute',
+              left: `${imagePos.x}px`,
+              top: `${imagePos.y}px`,
+              cursor: productImage ? (isDragging ? 'grabbing' : 'grab') : 'default',
+              zIndex: 100,
+              margin: 0,
+              userSelect: 'none',
+            }}
+          >
             <div className="product-image-container">
               {productImage ? (
                 <div className="product-image-wrapper">
-                  <img src={productImage} alt="Product" className="product-image" />
+                  <img src={productImage} alt="Product" className="product-image" draggable="false" />
                   <button
                     type="button"
                     onClick={handleRemoveImage}
                     className="remove-image-button"
                     title="Remove image"
+                    onMouseDown={(e) => e.stopPropagation()}
                   >
                     ×
                   </button>
@@ -723,13 +769,14 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 className="image-upload-input"
                 id={`image-upload-${initialContent.title}`}
               />
-             <label
-  htmlFor={`image-upload-${initialContent.title}`}
-  className="image-upload-label"
-  data-html2canvas-ignore="true"
->
-  {productImage ? 'Change Image' : 'Upload Image'}
-</label>
+              <label
+                htmlFor={`image-upload-${initialContent.title}`}
+                className="image-upload-label"
+                data-html2canvas-ignore="true"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {productImage ? 'Change Image' : 'Upload Image'}
+              </label>
             </div>
             <EditableText
               tagName="p"
@@ -738,6 +785,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               onChange={(val) => updateCustomText('imageCaption', val)}
             />
           </div>
+
 
           {/* Technical Description */}
           <div className="technical-description">
