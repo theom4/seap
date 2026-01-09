@@ -184,32 +184,51 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [products, setProducts] = useState(initialContent.products || [])
 
     // --- Add these lines for Drag and Drop ---
-const [imagePos, setImagePos] = useState({ x: 0, y: 350 }); // Initial position
-const [isDragging, setIsDragging] = useState(false);
-const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    // --- Add these lines for Drag and Drop & Resizing ---
+    const [imagePos, setImagePos] = useState({ x: 0, y: 350 });
+    const [imageSize, setImageSize] = useState({ width: 300 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 });
 
-const handleMouseDown = (e: React.MouseEvent) => {
-  if (productImage) {
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - imagePos.x,
-      y: e.clientY - imagePos.y
-    });
-  }
-};
+    const handleMouseDown = (e: React.MouseEvent) => {
+      if (productImage && !isResizing) {
+        setIsDragging(true);
+        setDragStart({
+          x: e.clientX - imagePos.x,
+          y: e.clientY - imagePos.y
+        });
+      }
+    };
 
-const handleMouseMove = (e: React.MouseEvent) => {
-  if (isDragging) {
-    setImagePos({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
-  }
-};
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (isDragging) {
+        setImagePos({
+          x: e.clientX - dragStart.x,
+          y: e.clientY - dragStart.y
+        });
+      } else if (isResizing) {
+        const newWidth = Math.max(50, resizeStart.width + (e.clientX - resizeStart.x));
+        setImageSize({ width: newWidth });
+      }
+    };
 
-const handleMouseUp = () => {
-  setIsDragging(false);
-};
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      setIsResizing(false);
+    };
+
+    const handleResizeMouseDown = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsResizing(true);
+      setResizeStart({
+        x: e.clientX,
+        width: imageSize.width
+      });
+    };
+    // ----------------------------------------------------
+
 // ------------------------------------------
 
     
@@ -726,7 +745,7 @@ const handleMouseUp = () => {
           </div>
 
                       {/* Product Image - Draggable & Resizable */}
-          <div 
+                 <div 
             className="product-image-section"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
@@ -743,6 +762,7 @@ const handleMouseUp = () => {
               userSelect: 'none',
             }}
           >
+
             <div className="product-image-container" style={{ position: 'relative', width: '100%' }}>
               {productImage ? (
                 <div className="product-image-wrapper" style={{ width: '100%' }}>
