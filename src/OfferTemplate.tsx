@@ -725,7 +725,7 @@ const handleMouseUp = () => {
             />
           </div>
 
-                {/* Product Image - Now Draggable */}
+                      {/* Product Image - Draggable & Resizable */}
           <div 
             className="product-image-section"
             onMouseDown={handleMouseDown}
@@ -736,16 +736,31 @@ const handleMouseUp = () => {
               position: 'absolute',
               left: `${imagePos.x}px`,
               top: `${imagePos.y}px`,
+              width: `${imageSize.width}px`,
               cursor: productImage ? (isDragging ? 'grabbing' : 'grab') : 'default',
               zIndex: 100,
               margin: 0,
               userSelect: 'none',
             }}
           >
-            <div className="product-image-container">
+            <div className="product-image-container" style={{ position: 'relative', width: '100%' }}>
               {productImage ? (
-                <div className="product-image-wrapper">
-                  <img src={productImage} alt="Product" className="product-image" draggable="false" />
+                <div className="product-image-wrapper" style={{ width: '100%' }}>
+                  <img 
+                    src={productImage} 
+                    alt="Product" 
+                    className="product-image" 
+                    draggable="false" 
+                    style={{ width: '100%', height: 'auto', display: 'block' }} 
+                  />
+                  
+                  {/* Resize Handle (Bottom Right) */}
+                  <div 
+                    className="resize-handle"
+                    onMouseDown={handleResizeMouseDown}
+                    data-html2canvas-ignore="true"
+                  />
+
                   <button
                     type="button"
                     onClick={handleRemoveImage}
@@ -785,6 +800,7 @@ const handleMouseUp = () => {
               onChange={(val) => updateCustomText('imageCaption', val)}
             />
           </div>
+
 
 
           {/* Technical Description */}
