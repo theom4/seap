@@ -239,7 +239,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     // State for "Static" labels that are now editable
     const [customText, setCustomText] = useState({
       productPageLabel: 'Pagină produs:',
-      imageCaption: 'Fig 1. Vizualizare produs în showroom',
       techDetailsTitle: 'Descriere Tehnică Detaliată',
       specialPriceLabel: 'PRET SPECIAL DE OFERTĂ',
       priceNote: 'TVA Inclus. Livrare Standard Gratuită.',
@@ -794,12 +793,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 {productImage ? 'Change Image' : 'Upload Image'}
               </label>
             </div>
-            <EditableText
-              tagName="p"
-              className="image-caption"
-              value={customText.imageCaption}
-              onChange={(val) => updateCustomText('imageCaption', val)}
-            />
           </div>
 
 
