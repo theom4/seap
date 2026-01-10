@@ -434,27 +434,43 @@ const canvas = await html2canvas(templateRef.current, {
   scale: 2,
   useCORS: true,
   allowTaint: true,
-  logging: false,
+  logging: true, // Enable logging to debug
   backgroundColor: '#ffffff',
   width: 210 * 3.78, // Fixed A4 width in pixels
   height: templateRef.current.scrollHeight,
-          onclone: (clonedDoc) => {
-            const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement;
-            if (clonedTemplate) {
-              // FIX 1: Set overflow to 'hidden' so images hanging off the edge are cut 
-              // instead of shrinking the whole PDF to fit them.
-              clonedTemplate.style.overflow = 'hidden'; 
-              clonedTemplate.style.position = 'relative';
-              
-              const draggableImg = clonedTemplate.querySelector('.product-image-draggable') as HTMLElement;
-              if (draggableImg) {
-                draggableImg.style.display = 'block';
-                draggableImg.style.visibility = 'visible';
-                draggableImg.style.opacity = '1';
-              }
-            }
-          }
-        })
+  onclone: (clonedDoc) => {
+    const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement;
+    if (clonedTemplate) {
+      clonedTemplate.style.overflow = 'hidden'; 
+      clonedTemplate.style.position = 'relative';
+      
+      // Find the draggable image in the clone
+      const draggableImg = clonedTemplate.querySelector('.product-image-draggable') as HTMLElement;
+      if (draggableImg) {
+        // Make it visible and position it statically for capture
+        draggableImg.style.position = 'static';
+        draggableImg.style.display = 'block';
+        draggableImg.style.visibility = 'visible';
+        draggableImg.style.opacity = '1';
+        draggableImg.style.left = 'auto';
+        draggableImg.style.top = 'auto';
+        draggableImg.style.margin = '20px 0';
+        draggableImg.style.zIndex = 'auto';
+        
+        // Ensure the image itself is visible
+        const img = draggableImg.querySelector('img');
+        if (img) {
+          img.style.display = 'block';
+          img.style.visibility = 'visible';
+          img.style.opacity = '1';
+          img.style.maxWidth = '500px';
+          img.style.width = '100%';
+          img.style.height = 'auto';
+        }
+      }
+    }
+  }
+})
 // Restore image original styles
 if (draggableImg && savedImageStyles) {
   draggableImg.style.position = savedImageStyles.position
