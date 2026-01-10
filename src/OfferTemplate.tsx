@@ -398,7 +398,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           document.body.removeChild(productsContainer)
         }
 
-        // --- PAGE 3+: Main Offer - Back to Portrait ---
 // FIX: Temporarily make draggable image static for PDF capture
 const draggableImg = templateRef.current.querySelector('.product-image-draggable') as HTMLElement
 let savedImageStyles: any = null
@@ -409,27 +408,36 @@ if (draggableImg && productImage) {
     left: draggableImg.style.left,
     top: draggableImg.style.top,
     zIndex: draggableImg.style.zIndex,
+    width: draggableImg.style.width,
+    margin: draggableImg.style.margin,
+    display: draggableImg.style.display,
   }
   
-  // Make it part of document flow
-  draggableImg.style.position = 'relative'
-  draggableImg.style.left = '0'
-  draggableImg.style.top = '0'
-  draggableImg.style.zIndex = '1'
-  draggableImg.style.margin = '20px auto'
+  // Make it part of document flow at its current position
+  draggableImg.style.position = 'static'
+  draggableImg.style.left = 'auto'
+  draggableImg.style.top = 'auto'
+  draggableImg.style.zIndex = 'auto'
+  draggableImg.style.margin = '20px 0'
   draggableImg.style.display = 'block'
+  draggableImg.style.width = `${imageSize.width}px`
 }
 
-await new Promise((resolve) => setTimeout(resolve, 1000))
+// Force layout recalculation
+if (templateRef.current) {
+  templateRef.current.style.overflow = 'hidden'
+}
+
+await new Promise((resolve) => setTimeout(resolve, 500))
+
 const canvas = await html2canvas(templateRef.current, {
   scale: 2,
   useCORS: true,
   allowTaint: true,
   logging: false,
   backgroundColor: '#ffffff',
-  width: templateRef.current.offsetWidth,
-  height: templateRef.current.scrollHeight, // Changed from offsetHeight
-  windowHeight: templateRef.current.scrollHeight, // Added this
+  width: 210 * 3.78, // Fixed A4 width in pixels
+  height: templateRef.current.scrollHeight,
           onclone: (clonedDoc) => {
             const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement;
             if (clonedTemplate) {
@@ -447,44 +455,44 @@ const canvas = await html2canvas(templateRef.current, {
             }
           }
         })
-
 // Restore image original styles
 if (draggableImg && savedImageStyles) {
   draggableImg.style.position = savedImageStyles.position
   draggableImg.style.left = savedImageStyles.left
   draggableImg.style.top = savedImageStyles.top
   draggableImg.style.zIndex = savedImageStyles.zIndex
-  draggableImg.style.margin = ''
-  draggableImg.style.display = ''
+  draggableImg.style.width = savedImageStyles.width
+  draggableImg.style.margin = savedImageStyles.margin
+  draggableImg.style.display = savedImageStyles.display
+}
+
+// Restore template overflow
+if (templateRef.current) {
+  templateRef.current.style.overflow = ''
 }
 
 // Convert canvas to image
-                    const imgData = canvas.toDataURL('image/png')
-                    const imgWidth = pdfWidth
-                    const imgHeight = (canvas.height * pdfWidth) / canvas.width
+const imgData = canvas.toDataURL('image/jpeg', 0.95)
+const imgWidth = pdfWidth
+const imgHeight = (canvas.height * pdfWidth) / canvas.width
                     
                     // Scale to fit single page if content is too tall
-                    if (imgHeight > pageHeight) {
-                      const scale = pageHeight / imgHeight
-                      const scaledWidth = imgWidth * scale
-                      const xOffset = (imgWidth - scaledWidth) / 2
-                      pdf.addImage(imgData, 'PNG', xOffset, 0, scaledWidth, pageHeight)
-                    } else {
-                      // Content fits normally
-                      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
-                    }
+                    // Add page 3 with the main offer
+pdf.addPage('p')
 
-// Handle multi-page content if needed
-let heightLeft = imgHeight - pageHeight
+// Scale to fit single page - always scale to fit one page
+if (imgHeight > pageHeight) {
+  const scale = pageHeight / imgHeight
+  const scaledWidth = imgWidth * scale
+  const scaledHeight = pageHeight
+  const xOffset = (imgWidth - scaledWidth) / 2
+  pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, scaledHeight)
+} else {
+  // Content fits normally
+  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
+}
 
-        // FIX 2: Added a 2mm threshold. If only 1-2mm of content remains 
-        // (usually empty whitespace/margins), it won't create a new blank page.
-        while (heightLeft > 2) {
-          pdf.addPage('p')
-          const currentPosition = -(imgHeight - heightLeft);
-          pdf.addImage(imgData, 'JPEG', 0, currentPosition, imgWidth, imgHeight)
-          heightLeft -= pageHeight
-        }
+// Don't add extra pages - keep it single page
 
         return pdf.output('blob')
 
