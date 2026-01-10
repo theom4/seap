@@ -458,24 +458,19 @@ if (draggableImg && savedImageStyles) {
   draggableImg.style.display = ''
 }
 
-const imgData = canvas.toDataURL('image/jpeg', 1.0)
-const imgWidth = 210 // A4 width in mm
-const pageHeight = 297 // A4 height in mm
-const imgHeight = (canvas.height * imgWidth) / canvas.width
-
-// Add the main offer page
-pdf.addPage('p')
-
-// Scale to fit single page if content is too tall
-if (imgHeight > pageHeight) {
-  const scale = pageHeight / imgHeight
-  const scaledWidth = imgWidth * scale
-  const xOffset = (imgWidth - scaledWidth) / 2
-  pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, pageHeight)
-} else {
-  // Content fits normally
-  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
-}
+// Convert canvas to image
+                    const imgData = canvas.toDataURL('image/png')
+                    
+                    // Scale to fit single page if content is too tall
+                    if (imgHeight > pageHeight) {
+                      const scale = pageHeight / imgHeight
+                      const scaledWidth = imgWidth * scale
+                      const xOffset = (imgWidth - scaledWidth) / 2
+                      pdf.addImage(imgData, 'PNG', xOffset, 0, scaledWidth, pageHeight)
+                    } else {
+                      // Content fits normally
+                      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
+                    }
 
 // Handle multi-page content if needed
 let heightLeft = imgHeight - pageHeight
