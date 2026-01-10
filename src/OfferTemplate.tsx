@@ -399,16 +399,37 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         }
 
         // --- PAGE 3+: Main Offer - Back to Portrait ---
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+// FIX: Temporarily make draggable image static for PDF capture
+const draggableImg = templateRef.current.querySelector('.product-image-draggable') as HTMLElement
+let savedImageStyles: any = null
 
-        const canvas = await html2canvas(templateRef.current, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          logging: true,
-          backgroundColor: '#ffffff',
-          width: templateRef.current.offsetWidth,
-          height: templateRef.current.scrollHeight,
+if (draggableImg && productImage) {
+  savedImageStyles = {
+    position: draggableImg.style.position,
+    left: draggableImg.style.left,
+    top: draggableImg.style.top,
+    zIndex: draggableImg.style.zIndex,
+  }
+  
+  // Make it part of document flow
+  draggableImg.style.position = 'relative'
+  draggableImg.style.left = '0'
+  draggableImg.style.top = '0'
+  draggableImg.style.zIndex = '1'
+  draggableImg.style.margin = '20px auto'
+  draggableImg.style.display = 'block'
+}
+
+await new Promise((resolve) => setTimeout(resolve, 1000))
+const canvas = await html2canvas(templateRef.current, {
+  scale: 2,
+  useCORS: true,
+  allowTaint: true,
+  logging: false,
+  backgroundColor: '#ffffff',
+  width: templateRef.current.offsetWidth,
+  height: templateRef.current.scrollHeight, // Changed from offsetHeight
+  windowHeight: templateRef.current.scrollHeight, // Added this
           onclone: (clonedDoc) => {
             const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement;
             if (clonedTemplate) {
@@ -427,12 +448,20 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           }
         })
 
-        const imgData = canvas.toDataURL('image/jpeg', 1.0)
-        const imgWidth = 210 
-        const pageHeight = 297 
-        const imgHeight = (canvas.height * imgWidth) / canvas.width
-        let heightLeft = imgHeight
-        let position = 0
+      // Restore image original styles
+if (draggableImg && savedImageStyles) {
+  draggableImg.style.position = savedImageStyles.position
+  draggableImg.style.left = savedImageStyles.left
+  draggableImg.style.top = savedImageStyles.top
+  draggableImg.style.zIndex = savedImageStyles.zIndex
+  draggableImg.style.margin = ''
+  draggableImg.style.display = ''
+}
+
+const imgData = canvas.toDataURL('image/jpeg', 1.0)
+const imgWidth = 210 // A4 width in mm
+const pageHeight = 297 // A4 height in mm
+const imgHeight = (canvas.height * imgWidth) / canvas.width
 
         pdf.addPage('p')
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
