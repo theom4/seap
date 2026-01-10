@@ -326,24 +326,16 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       setTechnicalDetailsTable(updated)
     }
 
-
     // --- 2. NEW PDF GENERATION LOGIC (Merged) ---
     const generateFinalPDF = async (): Promise<Blob> => {
       if (!templateRef.current) throw new Error('Template ref not found')
 
-      // Debug: Log products state
-      console.log('Generating PDF with products:', products)
-      console.log('Products count:', products.length)
-      if (products && products.length > 0) {
-        console.log('First product:', products[0])
-        console.log('Products table HTML preview:', getProductsTableHTML(products).substring(0, 500))
-      }
-
       try {
         const pdf = new jsPDF('p', 'mm', 'a4')
         const pdfWidth = 210
+        const pdfHeight = 297
 
-        // --- PAGE 1: Annex (Formular de Oferta) - NOW FIRST ---
+        // --- PAGE 1: Annex (Formular de Oferta) ---
         const annexContainer = document.createElement('div')
         annexContainer.style.position = 'fixed'
         annexContainer.style.left = '0'
@@ -387,9 +379,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             windowWidth: 297 * 3.78,
             windowHeight: 210 * 3.78,
             x: 0,
-            y: 0,
-            scrollX: 0,
-            scrollY: 0
+            y: 0
           })
 
           productsContainer.style.visibility = 'hidden'
@@ -402,15 +392,13 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
 
           const productsImgData = productsCanvas.toDataURL('image/jpeg', 0.95)
 
-          // Center vertically if needed
           const yOffset = imgHeightInPdf < landscapePdfHeight ? (landscapePdfHeight - imgHeightInPdf) / 2 : 0
 
           pdf.addImage(productsImgData, 'JPEG', 0, yOffset, imgWidthInPdf, imgHeightInPdf)
           document.body.removeChild(productsContainer)
         }
 
-               // --- PAGE 3+: Main Offer - Back to Portrait with Multi-page Support ---
-        // Wait a bit to ensure all images and styles are applied
+        // --- PAGE 3+: Main Offer - Back to Portrait ---
         await new Promise((resolve) => setTimeout(resolve, 1000))
 
         const canvas = await html2canvas(templateRef.current, {
@@ -420,14 +408,15 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           logging: true,
           backgroundColor: '#ffffff',
           width: templateRef.current.offsetWidth,
-          height: templateRef.current.offsetHeight,
+          height: templateRef.current.scrollHeight,
           onclone: (clonedDoc) => {
             const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement;
             if (clonedTemplate) {
-              clonedTemplate.style.overflow = 'visible';
+              // FIX 1: Set overflow to 'hidden' so images hanging off the edge are cut 
+              // instead of shrinking the whole PDF to fit them.
+              clonedTemplate.style.overflow = 'hidden'; 
               clonedTemplate.style.position = 'relative';
               
-              // Explicitly ensure the draggable image is visible in the clone
               const draggableImg = clonedTemplate.querySelector('.product-image-draggable') as HTMLElement;
               if (draggableImg) {
                 draggableImg.style.display = 'block';
@@ -439,27 +428,27 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         })
 
         const imgData = canvas.toDataURL('image/jpeg', 1.0)
-        const imgWidth = 210 // A4 width in mm
-        const pageHeight = 297 // A4 height in mm
+        const imgWidth = 210 
+        const pageHeight = 297 
         const imgHeight = (canvas.height * imgWidth) / canvas.width
         let heightLeft = imgHeight
         let position = 0
 
-        // Add the first page of the main offer
         pdf.addPage('p')
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
         heightLeft -= pageHeight
 
-        // Add subsequent pages if content is longer than one page
-        while (heightLeft > 0) {
+        // FIX 2: Added a 2mm threshold. If only 1-2mm of content remains 
+        // (usually empty whitespace/margins), it won't create a new blank page.
+        while (heightLeft > 2) {
           position = heightLeft - imgHeight
           pdf.addPage('p')
-          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
+          const currentPosition = -(imgHeight - heightLeft);
+          pdf.addImage(imgData, 'JPEG', 0, currentPosition, imgWidth, imgHeight)
           heightLeft -= pageHeight
         }
 
         return pdf.output('blob')
-
 
       } catch (error) {
         console.error('Error in generateFinalPDF:', error)
