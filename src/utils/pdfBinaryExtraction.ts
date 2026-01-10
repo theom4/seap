@@ -87,12 +87,16 @@ export async function extractBinaryFromFile(file: File): Promise<ExtractedBinary
                     heightLeft -= pageHeight
 
                     // Add extra pages if needed
-                    while (heightLeft > 0) {
-                        position = heightLeft - imgHeight
-                        pdf.addPage()
-                        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight)
-                        heightLeft -= pageHeight
-                    }
+                    // Scale to fit single page if content is too tall
+if (imgHeight > pageHeight) {
+  const scale = pageHeight / imgHeight
+  const scaledWidth = imgWidth * scale
+  const xOffset = (imgWidth - scaledWidth) / 2
+  pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, pageHeight)
+} else {
+  // Content fits normally
+  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
+}
 
                     // Get binary output
                     // We need the base64 string without the 'data:application/pdf;base64,' prefix
