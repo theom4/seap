@@ -333,7 +333,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       try {
         const pdf = new jsPDF('p', 'mm', 'a4')
         const pdfWidth = 210
-        const pdfHeight = 297
+        const pageHeight = 297
 
         // --- PAGE 1: Annex (Formular de Oferta) ---
         const annexContainer = document.createElement('div')
@@ -460,6 +460,8 @@ if (draggableImg && savedImageStyles) {
 
 // Convert canvas to image
                     const imgData = canvas.toDataURL('image/png')
+                    const imgWidth = pdfWidth
+                    const imgHeight = (canvas.height * pdfWidth) / canvas.width
                     
                     // Scale to fit single page if content is too tall
                     if (imgHeight > pageHeight) {
@@ -474,12 +476,10 @@ if (draggableImg && savedImageStyles) {
 
 // Handle multi-page content if needed
 let heightLeft = imgHeight - pageHeight
-let position = -pageHeight
 
         // FIX 2: Added a 2mm threshold. If only 1-2mm of content remains 
         // (usually empty whitespace/margins), it won't create a new blank page.
         while (heightLeft > 2) {
-          position = heightLeft - imgHeight
           pdf.addPage('p')
           const currentPosition = -(imgHeight - heightLeft);
           pdf.addImage(imgData, 'JPEG', 0, currentPosition, imgWidth, imgHeight)
