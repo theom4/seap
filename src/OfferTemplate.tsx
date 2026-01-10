@@ -477,6 +477,10 @@ if (imgHeight > pageHeight) {
   pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
 }
 
+// Handle multi-page content if needed
+let heightLeft = imgHeight - pageHeight
+let position = -pageHeight
+
         // FIX 2: Added a 2mm threshold. If only 1-2mm of content remains 
         // (usually empty whitespace/margins), it won't create a new blank page.
         while (heightLeft > 2) {
