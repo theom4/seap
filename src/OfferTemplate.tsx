@@ -448,7 +448,7 @@ const canvas = await html2canvas(templateRef.current, {
           }
         })
 
-      // Restore image original styles
+// Restore image original styles
 if (draggableImg && savedImageStyles) {
   draggableImg.style.position = savedImageStyles.position
   draggableImg.style.left = savedImageStyles.left
@@ -463,9 +463,19 @@ const imgWidth = 210 // A4 width in mm
 const pageHeight = 297 // A4 height in mm
 const imgHeight = (canvas.height * imgWidth) / canvas.width
 
-        pdf.addPage('p')
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
+// Add the main offer page
+pdf.addPage('p')
+
+// Scale to fit single page if content is too tall
+if (imgHeight > pageHeight) {
+  const scale = pageHeight / imgHeight
+  const scaledWidth = imgWidth * scale
+  const xOffset = (imgWidth - scaledWidth) / 2
+  pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, pageHeight)
+} else {
+  // Content fits normally
+  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
+}
 
         // FIX 2: Added a 2mm threshold. If only 1-2mm of content remains 
         // (usually empty whitespace/margins), it won't create a new blank page.
