@@ -874,8 +874,7 @@ if (imgHeight > pageHeight) {
               />
             </div>
           )}
-
-          {/* Image Upload Section - Moved to a non-disruptive location */}
+{/* Image Upload Section - Moved to a non-disruptive location */}
           <div 
             className="image-upload-controls"
             data-html2canvas-ignore="true"
@@ -893,24 +892,22 @@ if (imgHeight > pageHeight) {
               accept="image/*"
               style={{ display: 'none' }}
             />
-            {!productImage && (
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                style={{
-                  padding: '8px 16px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}
-              >
-                + Upload Product Image
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              style={{
+                padding: '8px 16px',
+                background: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              + Upload Product Image
+            </button>
           </div>
 
           {/* Technical Description */}
