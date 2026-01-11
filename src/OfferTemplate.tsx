@@ -430,6 +430,7 @@ if (templateRef.current) {
 
 await new Promise((resolve) => setTimeout(resolve, 500))
 
+console.log('Starting html2canvas capture for PDF generation...');
 const canvas = await html2canvas(templateRef.current, {
   scale: 2,
   useCORS: true,
@@ -447,6 +448,7 @@ const canvas = await html2canvas(templateRef.current, {
       // Find the draggable image in the clone
       const draggableImg = clonedTemplate.querySelector('.product-image-draggable') as HTMLElement;
       if (draggableImg) {
+        console.log('Found draggable image in clone');
         // Make it visible and position it statically for capture
         draggableImg.style.position = 'static';
         draggableImg.style.display = 'block';
@@ -456,7 +458,7 @@ const canvas = await html2canvas(templateRef.current, {
         draggableImg.style.top = 'auto';
         draggableImg.style.margin = '20px 0';
         draggableImg.style.zIndex = 'auto';
-        
+
         // Ensure the image itself is visible
         const img = draggableImg.querySelector('img');
         if (img) {
@@ -467,6 +469,8 @@ const canvas = await html2canvas(templateRef.current, {
           img.style.width = '100%';
           img.style.height = 'auto';
         }
+      } else {
+        console.log('Draggable image NOT found in clone');
       }
     }
   }
