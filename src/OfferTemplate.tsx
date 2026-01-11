@@ -780,11 +780,12 @@ if (imgHeight > pageHeight) {
             />
           </div>
 
-       {/* Product Image - Draggable and Positionable */}
+          {/* Product Image - Draggable and Positionable */}
 {productImage && (
   <div
     className="product-image-draggable"
     onMouseDown={handleMouseDown}
+    data-image-draggable="true"
     style={{
       position: 'absolute',
       left: `${imagePos.x}px`,
@@ -794,9 +795,10 @@ if (imgHeight > pageHeight) {
       zIndex: 100,
       userSelect: 'none',
       pointerEvents: 'auto',
-      display: 'block'
+      display: 'block',
+      visibility: 'visible',
+      opacity: 1
     }}
-    data-html2canvas-ignore="false"
   >
               <img
                 src={productImage}
