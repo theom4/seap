@@ -179,52 +179,70 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage || '')
     const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || [])
     const [, setOfferReference] = useState(initialMetadata.offerReference || '')
-    const [productImage, setProductImage] = useState<string | null>(null)
-    const [products, setProducts] = useState(initialContent.products || [])
+const [productImage, setProductImage] = useState<string | null>(null)
+  const [products, setProducts] = useState(initialContent.products || [])
 
-    // --- Add these lines for Drag and Drop & Resizing ---
-    const [imagePos, setImagePos] = useState({ x: 0, y: 350 });
-    const [imageSize, setImageSize] = useState({ width: 300 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [isResizing, setIsResizing] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 });
+  // --- Multiple images support ---
+  const [productImages, setProductImages] = useState<Array<{id: string, src: string, pos: {x: number, y: number}, size: {width: number}}>>([])
+  const [nextImageId, setNextImageId] = useState(0)
 
-    const handleMouseDown = (e: React.MouseEvent) => {
-      if (productImage && !isResizing) {
-        setIsDragging(true);
+  // --- Add these lines for Drag and Drop & Resizing ---
+  const [imagePos, setImagePos] = useState({ x: 0, y: 350 });
+  const [imageSize, setImageSize] = useState({ width: 300 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 });
+  const [activeImageId, setActiveImageId] = useState<string | null>(null);
+
+   const handleMouseDown = (e: React.MouseEvent, imageId: string) => {
+    if (!isResizing) {
+      setIsDragging(true);
+      setActiveImageId(imageId);
+      const img = productImages.find(i => i.id === imageId);
+      if (img) {
         setDragStart({
-          x: e.clientX - imagePos.x,
-          y: e.clientY - imagePos.y
+          x: e.clientX - img.pos.x,
+          y: e.clientY - img.pos.y
         });
       }
-    };
+    }
+  };
+const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && activeImageId) {
+      setProductImages(prev => prev.map(img => 
+        img.id === activeImageId 
+          ? { ...img, pos: { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y }}
+          : img
+      ));
+    } else if (isResizing && activeImageId) {
+      const newWidth = Math.max(50, resizeStart.width + (e.clientX - resizeStart.x));
+      setProductImages(prev => prev.map(img =>
+        img.id === activeImageId
+          ? { ...img, size: { width: newWidth }}
+          : img
+      ));
+    }
+  };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-      if (isDragging) {
-        setImagePos({
-          x: e.clientX - dragStart.x,
-          y: e.clientY - dragStart.y
-        });
-      } else if (isResizing) {
-        const newWidth = Math.max(50, resizeStart.width + (e.clientX - resizeStart.x));
-        setImageSize({ width: newWidth });
-      }
-    };
+ const handleMouseUp = () => {
+    setIsDragging(false);
+    setIsResizing(false);
+    setActiveImageId(null);
+  };
 
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      setIsResizing(false);
-    };
-
-    const handleResizeMouseDown = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setIsResizing(true);
+  const handleResizeMouseDown = (e: React.MouseEvent, imageId: string) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setActiveImageId(imageId);
+    const img = productImages.find(i => i.id === imageId);
+    if (img) {
       setResizeStart({
         x: e.clientX,
-        width: imageSize.width
+        width: img.size.width
       });
-    };
+    }
+  };
     // ----------------------------------------------------
 
 // ------------------------------------------
@@ -290,7 +308,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     }
 
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
       if (file) {
         if (!file.type.startsWith('image/')) {
@@ -301,16 +319,23 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         reader.onload = (event) => {
           const result = event.target?.result
           if (typeof result === 'string') {
-            // Use data URL directly to avoid CORS issues during PDF generation
-            setProductImage(result)
+            // Add new image to the array
+            const newImage = {
+              id: `img-${nextImageId}`,
+              src: result,
+              pos: { x: 50 + (nextImageId * 20), y: 350 + (nextImageId * 20) }, // Offset each new image
+              size: { width: 300 }
+            };
+            setProductImages(prev => [...prev, newImage]);
+            setNextImageId(prev => prev + 1);
           }
         }
         reader.readAsDataURL(file)
       }
     }
 
-    const handleRemoveImage = () => {
-      setProductImage(null)
+   const handleRemoveImage = (imageId: string) => {
+      setProductImages(prev => prev.filter(img => img.id !== imageId));
       if (imageInputRef.current) {
         imageInputRef.current.value = ''
       }
@@ -398,31 +423,31 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           document.body.removeChild(productsContainer)
         }
 
-// FIX: Ensure draggable image maintains position for PDF capture
-const draggableImg = templateRef.current.querySelector('.product-image-draggable') as HTMLElement
-let savedImageStyles: any = null
+// FIX: Ensure draggable images maintain position for PDF capture
+const draggableImgs = templateRef.current.querySelectorAll('.product-image-draggable') as NodeListOf<HTMLElement>
+const savedImagesStyles: any[] = []
 
-if (draggableImg && productImage) {
-  // Don't change position - keep it absolute with current coordinates
-  savedImageStyles = {
-    position: draggableImg.style.position,
-    left: draggableImg.style.left,
-    top: draggableImg.style.top,
-    zIndex: draggableImg.style.zIndex,
-    width: draggableImg.style.width,
-    margin: draggableImg.style.margin,
-    display: draggableImg.style.display,
+draggableImgs.forEach((draggableImg, index) => {
+  if (productImages[index]) {
+    savedImagesStyles[index] = {
+      position: draggableImg.style.position,
+      left: draggableImg.style.left,
+      top: draggableImg.style.top,
+      zIndex: draggableImg.style.zIndex,
+      width: draggableImg.style.width,
+      margin: draggableImg.style.margin,
+      display: draggableImg.style.display,
+    }
+    
+    draggableImg.style.position = 'absolute'
+    draggableImg.style.left = `${productImages[index].pos.x}px`
+    draggableImg.style.top = `${productImages[index].pos.y}px`
+    draggableImg.style.width = `${productImages[index].size.width}px`
+    draggableImg.style.display = 'block'
+    draggableImg.style.visibility = 'visible'
+    draggableImg.style.opacity = '1'
   }
-  
-  // Keep position absolute but ensure it's visible
-  draggableImg.style.position = 'absolute'
-  draggableImg.style.left = `${imagePos.x}px`
-  draggableImg.style.top = `${imagePos.y}px`
-  draggableImg.style.width = `${imageSize.width}px`
-  draggableImg.style.display = 'block'
-  draggableImg.style.visibility = 'visible'
-  draggableImg.style.opacity = '1'
-}
+})
 
 // Force layout recalculation
 if (templateRef.current) {
@@ -432,8 +457,7 @@ if (templateRef.current) {
 await new Promise((resolve) => setTimeout(resolve, 500))
 
 console.log('Starting html2canvas capture for PDF generation...');
-console.log('Current image position:', imagePos);
-console.log('Current image size:', imageSize);
+console.log('Current images:', productImages);
 
 const canvas = await html2canvas(templateRef.current, {
   scale: 2,
@@ -458,26 +482,28 @@ const canvas = await html2canvas(templateRef.current, {
     clonedTemplate.style.position = 'relative';
     clonedTemplate.style.minHeight = 'auto';
     
-    // Find ALL elements with data-image-draggable attribute
+ // Find ALL elements with data-image-draggable attribute
     const draggableImgs = clonedTemplate.querySelectorAll('[data-image-draggable="true"]');
     console.log(`Found ${draggableImgs.length} draggable image(s) in clone`);
     
-    draggableImgs.forEach((draggableImg) => {
+    draggableImgs.forEach((draggableImg, imgIndex) => {
       const imgElement = draggableImg as HTMLElement;
-      console.log('Processing draggable image in clone');
-      console.log('Setting position to:', imagePos);
+      const imgData = productImages[imgIndex];
       
-      // CRITICAL: Set the exact position from state
+      if (!imgData) return;
+      
+      console.log(`Processing draggable image ${imgIndex} in clone`);
+      console.log('Setting position to:', imgData.pos);
+      
       imgElement.style.position = 'absolute';
-      imgElement.style.left = `${imagePos.x}px`;
-      imgElement.style.top = `${imagePos.y}px`;
-      imgElement.style.width = `${imageSize.width}px`;
+      imgElement.style.left = `${imgData.pos.x}px`;
+      imgElement.style.top = `${imgData.pos.y}px`;
+      imgElement.style.width = `${imgData.size.width}px`;
       imgElement.style.display = 'block';
       imgElement.style.visibility = 'visible';
       imgElement.style.opacity = '1';
       imgElement.style.pointerEvents = 'none';
       
-      // Ensure the img tag itself is visible
       const img = imgElement.querySelector('img');
       if (img) {
         img.style.display = 'block';
@@ -491,15 +517,18 @@ const canvas = await html2canvas(templateRef.current, {
   }
 })
 // Restore image original styles
-if (draggableImg && savedImageStyles) {
-  draggableImg.style.position = savedImageStyles.position
-  draggableImg.style.left = savedImageStyles.left
-  draggableImg.style.top = savedImageStyles.top
-  draggableImg.style.zIndex = savedImageStyles.zIndex
-  draggableImg.style.width = savedImageStyles.width
-  draggableImg.style.margin = savedImageStyles.margin
-  draggableImg.style.display = savedImageStyles.display
-}
+// Restore images original styles
+draggableImgs.forEach((draggableImg, index) => {
+  if (savedImagesStyles[index]) {
+    draggableImg.style.position = savedImagesStyles[index].position
+    draggableImg.style.left = savedImagesStyles[index].left
+    draggableImg.style.top = savedImagesStyles[index].top
+    draggableImg.style.zIndex = savedImagesStyles[index].zIndex
+    draggableImg.style.width = savedImagesStyles[index].width
+    draggableImg.style.margin = savedImagesStyles[index].margin
+    draggableImg.style.display = savedImagesStyles[index].display
+  }
+})
 
 // Restore template overflow
 if (templateRef.current) {
@@ -794,19 +823,19 @@ if (imgHeight > pageHeight) {
               onChange={setSubtitle}
             />
           </div>
-
-          {/* Product Image - Draggable and Positionable */}
-{productImage && (
+{/* Product Images - Draggable and Positionable (Multiple) */}
+{productImages.map((image) => (
   <div
+    key={image.id}
     className="product-image-draggable"
-    onMouseDown={handleMouseDown}
+    onMouseDown={(e) => handleMouseDown(e, image.id)}
     data-image-draggable="true"
     style={{
       position: 'absolute',
-      left: `${imagePos.x}px`,
-      top: `${imagePos.y}px`,
-      width: `${imageSize.width}px`,
-      cursor: isDragging ? 'grabbing' : 'grab',
+      left: `${image.pos.x}px`,
+      top: `${image.pos.y}px`,
+      width: `${image.size.width}px`,
+      cursor: isDragging && activeImageId === image.id ? 'grabbing' : 'grab',
       zIndex: 100,
       userSelect: 'none',
       pointerEvents: 'auto',
@@ -816,7 +845,7 @@ if (imgHeight > pageHeight) {
     }}
   >
               <img
-                src={productImage}
+                src={image.src}
                 alt="Product"
                 draggable="false"
                 crossOrigin="anonymous"
@@ -832,7 +861,7 @@ if (imgHeight > pageHeight) {
               />
               <button
                 type="button"
-                onClick={handleRemoveImage}
+                onClick={() => handleRemoveImage(image.id)}
                 className="remove-image-button"
                 data-html2canvas-ignore="true"
                 style={{
@@ -857,7 +886,7 @@ if (imgHeight > pageHeight) {
                 ×
               </button>
               <div
-                onMouseDown={handleResizeMouseDown}
+                onMouseDown={(e) => handleResizeMouseDown(e, image.id)}
                 data-html2canvas-ignore="true"
                 style={{
                   position: 'absolute',
@@ -873,7 +902,7 @@ if (imgHeight > pageHeight) {
                 }}
               />
             </div>
-          )}
+))}
 {/* Image Upload Section - Moved to a non-disruptive location */}
           <div 
             className="image-upload-controls"
