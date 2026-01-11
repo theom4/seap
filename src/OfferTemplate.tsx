@@ -398,11 +398,12 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           document.body.removeChild(productsContainer)
         }
 
-// FIX: Temporarily make draggable image static for PDF capture
+// FIX: Ensure draggable image maintains position for PDF capture
 const draggableImg = templateRef.current.querySelector('.product-image-draggable') as HTMLElement
 let savedImageStyles: any = null
 
 if (draggableImg && productImage) {
+  // Don't change position - keep it absolute with current coordinates
   savedImageStyles = {
     position: draggableImg.style.position,
     left: draggableImg.style.left,
@@ -413,14 +414,14 @@ if (draggableImg && productImage) {
     display: draggableImg.style.display,
   }
   
-  // Make it part of document flow at its current position
-  draggableImg.style.position = 'static'
-  draggableImg.style.left = 'auto'
-  draggableImg.style.top = 'auto'
-  draggableImg.style.zIndex = 'auto'
-  draggableImg.style.margin = '20px 0'
-  draggableImg.style.display = 'block'
+  // Keep position absolute but ensure it's visible
+  draggableImg.style.position = 'absolute'
+  draggableImg.style.left = `${imagePos.x}px`
+  draggableImg.style.top = `${imagePos.y}px`
   draggableImg.style.width = `${imageSize.width}px`
+  draggableImg.style.display = 'block'
+  draggableImg.style.visibility = 'visible'
+  draggableImg.style.opacity = '1'
 }
 
 // Force layout recalculation
@@ -431,6 +432,9 @@ if (templateRef.current) {
 await new Promise((resolve) => setTimeout(resolve, 500))
 
 console.log('Starting html2canvas capture for PDF generation...');
+console.log('Current image position:', imagePos);
+console.log('Current image size:', imageSize);
+
 const canvas = await html2canvas(templateRef.current, {
   scale: 2,
   useCORS: true,
@@ -461,9 +465,13 @@ const canvas = await html2canvas(templateRef.current, {
     draggableImgs.forEach((draggableImg) => {
       const imgElement = draggableImg as HTMLElement;
       console.log('Processing draggable image in clone');
+      console.log('Setting position to:', imagePos);
       
-      // Keep absolute positioning but ensure it's within bounds
+      // CRITICAL: Set the exact position from state
       imgElement.style.position = 'absolute';
+      imgElement.style.left = `${imagePos.x}px`;
+      imgElement.style.top = `${imagePos.y}px`;
+      imgElement.style.width = `${imageSize.width}px`;
       imgElement.style.display = 'block';
       imgElement.style.visibility = 'visible';
       imgElement.style.opacity = '1';
