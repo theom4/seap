@@ -1014,19 +1014,9 @@ if (imgHeight > pageHeight) {
             />
           </div>
 
-          {/* Footer */}
-          <div className="offer-footer">
-            <EditableText
-              tagName="p"
-              className="footer-note"
-              value={customText.footerNote}
-              onChange={(val) => updateCustomText('footerNote', val)}
-            />
           </div>
-        </div>
       </div>
     )
   }
 )
-
 OfferTemplate.displayName = 'OfferTemplate'
