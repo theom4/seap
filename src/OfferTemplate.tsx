@@ -179,7 +179,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage || '')
     const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || [])
     const [, setOfferReference] = useState(initialMetadata.offerReference || '')
-const [productImage, setProductImage] = useState<string | null>(null)
+const [_productImage, setProductImage] = useState<string | null>(null)
   const [products, setProducts] = useState(initialContent.products || [])
 
   // --- Multiple images support ---
@@ -187,8 +187,8 @@ const [productImage, setProductImage] = useState<string | null>(null)
   const [nextImageId, setNextImageId] = useState(0)
 
   // --- Add these lines for Drag and Drop & Resizing ---
-  const [imagePos, setImagePos] = useState({ x: 0, y: 350 });
-  const [imageSize, setImageSize] = useState({ width: 300 });
+  const [_imagePos, _setImagePos] = useState({ x: 0, y: 350 });
+  const [_imageSize, _setImageSize] = useState({ width: 300 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
