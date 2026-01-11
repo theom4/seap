@@ -435,44 +435,51 @@ const canvas = await html2canvas(templateRef.current, {
   scale: 2,
   useCORS: true,
   allowTaint: true,
-  logging: true, // Enable logging to debug
+  logging: true,
   backgroundColor: '#ffffff',
-  width: 210 * 3.78, // Fixed A4 width in pixels
-  height: templateRef.current.scrollHeight,
+  ignoreElements: (element) => {
+    // Don't ignore our draggable image
+    if (element.getAttribute('data-image-draggable') === 'true') {
+      return false;
+    }
+    // Ignore buttons and controls
+    return element.hasAttribute('data-html2canvas-ignore');
+  },
   onclone: (clonedDoc) => {
     const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement;
-    if (clonedTemplate) {
-      clonedTemplate.style.overflow = 'hidden'; 
-      clonedTemplate.style.position = 'relative';
-      
-      // Find the draggable image in the clone
-      const draggableImg = clonedTemplate.querySelector('.product-image-draggable') as HTMLElement;
-      if (draggableImg) {
-        console.log('Found draggable image in clone');
-        // Make it visible and position it statically for capture
-        draggableImg.style.position = 'static';
-        draggableImg.style.display = 'block';
-        draggableImg.style.visibility = 'visible';
-        draggableImg.style.opacity = '1';
-        draggableImg.style.left = 'auto';
-        draggableImg.style.top = 'auto';
-        draggableImg.style.margin = '20px 0';
-        draggableImg.style.zIndex = 'auto';
+    if (!clonedTemplate) return;
 
-        // Ensure the image itself is visible
-        const img = draggableImg.querySelector('img');
-        if (img) {
-          img.style.display = 'block';
-          img.style.visibility = 'visible';
-          img.style.opacity = '1';
-          img.style.maxWidth = '500px';
-          img.style.width = '100%';
-          img.style.height = 'auto';
-        }
-      } else {
-        console.log('Draggable image NOT found in clone');
+    // Ensure template is visible
+    clonedTemplate.style.overflow = 'visible';
+    clonedTemplate.style.position = 'relative';
+    clonedTemplate.style.minHeight = 'auto';
+    
+    // Find ALL elements with data-image-draggable attribute
+    const draggableImgs = clonedTemplate.querySelectorAll('[data-image-draggable="true"]');
+    console.log(`Found ${draggableImgs.length} draggable image(s) in clone`);
+    
+    draggableImgs.forEach((draggableImg) => {
+      const imgElement = draggableImg as HTMLElement;
+      console.log('Processing draggable image in clone');
+      
+      // Keep absolute positioning but ensure it's within bounds
+      imgElement.style.position = 'absolute';
+      imgElement.style.display = 'block';
+      imgElement.style.visibility = 'visible';
+      imgElement.style.opacity = '1';
+      imgElement.style.pointerEvents = 'none';
+      
+      // Ensure the img tag itself is visible
+      const img = imgElement.querySelector('img');
+      if (img) {
+        img.style.display = 'block';
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        img.style.maxWidth = 'none';
+        img.style.width = '100%';
+        img.style.height = 'auto';
       }
-    }
+    });
   }
 })
 // Restore image original styles
