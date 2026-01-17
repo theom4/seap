@@ -223,7 +223,7 @@ const ProductPage = forwardRef<HTMLDivElement, ProductPageProps>(({
   index,
   onChange,
   onDelete,
-  themeColors,
+
   customText,
   updateCustomText
 }, ref) => {
@@ -682,7 +682,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       })
     }
 
-    const handlePageDelete = (id: string, index: number) => {
+    const handlePageDelete = (_id: string, index: number) => {
       if (pages.length <= 1) {
         alert("Cannot delete the last page.")
         return
