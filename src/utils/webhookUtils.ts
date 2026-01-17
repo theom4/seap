@@ -59,10 +59,10 @@ function normalizeOffer(rawOffer: unknown, context: string): OfferData | null {
         unitPrice = parseFloat(priceMatch[0].replace(',', '.'))
       }
     }
-let productName = rawContent.title || rawContent.subtitle || 'Produs'
-if (productName.startsWith('Oferta Comerciala: ')) {
-  productName = productName.replace('Oferta Comerciala: ', '')
-}
+    let productName = rawContent.title || rawContent.subtitle || 'Produs'
+    if (productName.startsWith('Oferta Comerciala: ')) {
+      productName = productName.replace('Oferta Comerciala: ', '')
+    }
     // Create a single product entry from subtitle
     products = [
       {
@@ -133,6 +133,8 @@ if (productName.startsWith('Oferta Comerciala: ')) {
     offerMetadata: metadata,
     // Keep using the internal `offerConent` key expected by the rest of the app
     offerConent: normalizedContent,
+    // Preserve subOffers if they exist (crucial for consolidated offers)
+    subOffers: anyOffer.subOffers
   }
 
   return normalized
@@ -186,7 +188,7 @@ export function getAllOffers(webhookResponse: WebhookResponse | null): OfferData
   // Handle nested structures (old formats)
   // We already verified it's an array above.
   const nestedResponse = webhookResponse as WebhookResultItem[]
-  
+
   nestedResponse.forEach((item, itemIndex) => {
     if (!item) {
       console.warn(`Invalid webhook response item at index ${itemIndex}: item is null or undefined`)
@@ -269,3 +271,86 @@ export function getOfferKey(offer: OfferData, index: number): string {
 
 
 
+// ... (previous code)
+
+/**
+ * Consolidates multiple offers (typically from a single file) into a single master offer.
+ * The master offer contains:
+ * - Metadata from the first offer
+ * - Aggregated products from all offers
+ * - A 'subOffers' array containing the individual offers for detailed rendering
+ * 
+ * UPDATE: If we receive a SINGLE offer that contains MULTIPLE products, we
+ * "explode" it into multiple sub-offers (one per product) so that each product
+ * gets its own detail page.
+ */
+export function consolidateOffers(offers: OfferData[]): OfferData | null {
+  if (!offers || offers.length === 0) return null
+
+  // Case 1: Single Offer with Multiple Products -> Explode into Sub-Offers
+  if (offers.length === 1) {
+    const single = offers[0]
+    const content = single.offerConent || single.offerContent
+    const products = content?.products || []
+
+    if (products.length > 1) {
+      console.log(`consolidateOffers: Exploding single offer with ${products.length} products into distinct sub-offers.`)
+
+      const subOffers: OfferData[] = products.map((product, index) => {
+        // Create a new OfferData for this specific product page
+        // We clone the content but override specific fields
+        return {
+          ...single,
+          offerConent: {
+            ...content,
+            title: product.productName || `Produs ${index + 1}`,
+            // If we want the page to focus on this product, we limit the products array to just this one
+            // This affects what shows in the "Products" render within the page (if any) or just context
+            products: [product],
+            // We might want to clear specific technical details if they were global, 
+            // but assuming they might apply to all or we don't have better info.
+            // For now, inheriting the global description is safer than blank.
+          }
+        }
+      })
+
+      return {
+        ...single,
+        offerConent: {
+          ...content,
+          products: products // Keep all products in the master for the Big Table
+        },
+        subOffers: subOffers
+      }
+    }
+
+    // Single offer, single product (or none) -> Just return it wrapped
+    return {
+      ...single,
+      subOffers: [single]
+    }
+  }
+
+  // Case 2: Multiple Offers (already distinct) -> Consolidate them
+  const masterOffer = offers[0]
+  const allProducts: any[] = []
+
+  // Aggregate products from all offers
+  offers.forEach(offer => {
+    const content = offer.offerConent || offer.offerContent
+    if (content && content.products) {
+      allProducts.push(...content.products)
+    }
+  })
+
+  // Create the consolidated offer
+  return {
+    ...masterOffer, // Use metadata from the first one
+    offerConent: {
+      ...masterOffer.offerConent,
+      products: allProducts, // All products combined
+    },
+    // Important: Store the individual offers so we can render pages for each
+    subOffers: offers
+  }
+}

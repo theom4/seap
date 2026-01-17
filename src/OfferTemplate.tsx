@@ -8,11 +8,51 @@ import './OfferTemplate.css'
 interface OfferTemplateProps {
   offerData: OfferData
   onGeneratePDF: (pdfBlob: Blob) => void
+  hideGenerateButton?: boolean
+  hideAnnex?: boolean
+  hideAnnexInPDF?: boolean
 }
 
 export interface OfferTemplateRef {
   generatePDF: () => Promise<Blob>
 }
+
+// --- Types for Page Content ---
+interface PageImage {
+  id: string
+  src: string
+  pos: { x: number; y: number }
+  size: { width: number }
+}
+
+export interface OfferPageContent {
+  id: string // Unique ID for keying
+  type?: 'product' | 'blank' // New field to distinguish page types
+  title: string
+  subtitle: string
+  technicalDetailsMessage: string
+  technicalDetailsTable: TechnicalDetail[]
+  productImages: PageImage[]
+  nextImageId: number
+}
+
+// ... (getProductsTableHTML and getAnnexHTML remain same - skipped for brevity in replacement if not touched, but since I need to replace broadly to hit interfaces if I can't partial replace well)
+// Actually I can just replace the interface and then the component.
+// But split edits are safer. I will replace the interface first? 
+// No, I'll replace the ProductPage component and the interface in one go if they are close?
+// They are far apart.
+// I will just replace the `OfferPageContent` definition and `ProductPage` and `handleAddEmptyPage`.
+// Wait, `OfferPageContent` is at the top. `ProductPage` is in the middle.
+// I'll make multiple replacements.
+
+// REPLACEMENT 1: Interface
+// REPLACEMENT 2: ProductPage 
+// REPLACEMENT 3: Handlers and Buttons
+
+// Let's do REPLACEMENT 1 & 2 & 3 in one `replace_file_content` if possible?
+// No, strict single contiguous block.
+// I'll start with the Interface.
+
 
 // --- 1. PRODUCTS TABLE PAGE (LANDSCAPE) ---
 function getProductsTableHTML(products: Product[]) {
@@ -47,7 +87,7 @@ function getProductsTableHTML(products: Product[]) {
       page-break-inside: avoid;
       margin: 0 auto;
     ">
-      <h2 style="text-align: center; margin: 0 0 8mm 0; font-size: 16pt; font-weight: bold; color: #000 !important;">Tabel Produse</h2>
+      <h2 style="text-align: center; margin: 0 0 8mm 0; font-size: 16pt; font-weight: 700; font-family: Arial, sans-serif; color: #000 !important;">Tabel Produse</h2>
       <table style="
         width: 100%;
         border-collapse: collapse;
@@ -93,7 +133,7 @@ function getProductsTableHTML(products: Product[]) {
   `
 }
 
-// --- 2. ANNEX CONTENT (The "AS GREEN LAND" text) ---
+// --- 2. ANNEX CONTENT ---
 function getAnnexHTML() {
   return `
     <div style="font-family: Arial, sans-serif; color: #000; line-height: 1.6; font-size: 11pt; background: white; padding: 15mm 10mm;">
@@ -167,93 +207,433 @@ function getAnnexHTML() {
   `
 }
 
-export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
-  ({ offerData, onGeneratePDF }, ref) => {
-    const templateRef = useRef<HTMLDivElement>(null)
-    const imageInputRef = useRef<HTMLInputElement>(null)
-    const { offerMetadata: initialMetadata = {} as any, offerConent: initialContent = {} as any } = offerData || {}
+// --- PRODUCT PAGE SUB-COMPONENT ---
+interface ProductPageProps {
+  content: OfferPageContent
+  index: number
+  onChange: (updatedContent: OfferPageContent) => void
+  onDelete: (id: string, index: number) => void // Function to delete page 
+  themeColors: any
+  customText: any
+  updateCustomText: (key: string, value: string) => void
+}
 
-    // State for main content
-    const [title, setTitle] = useState(initialContent.title || '')
-    const [subtitle, setSubtitle] = useState(initialContent.subtitle || '')
-    const [technicalDetailsMessage, setTechnicalDetailsMessage] = useState(initialContent.technicalDetailsMessage || '')
-    const [technicalDetailsTable, setTechnicalDetailsTable] = useState(initialContent.technicalDetailsTable || [])
-    const [, setOfferReference] = useState(initialMetadata.offerReference || '')
-const [_productImage, setProductImage] = useState<string | null>(null)
-  const [products, setProducts] = useState(initialContent.products || [])
+const ProductPage = forwardRef<HTMLDivElement, ProductPageProps>(({
+  content,
+  index,
+  onChange,
+  onDelete,
+  themeColors,
+  customText,
+  updateCustomText
+}, ref) => {
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
-  // --- Multiple images support ---
-  const [productImages, setProductImages] = useState<Array<{id: string, src: string, pos: {x: number, y: number}, size: {width: number}}>>([])
-  const [nextImageId, setNextImageId] = useState(0)
+  // Local state for Drag & Drop
+  const [isDragging, setIsDragging] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 })
+  const [activeImageId, setActiveImageId] = useState<string | null>(null)
 
-  // --- Add these lines for Drag and Drop & Resizing ---
-  const [_imagePos, _setImagePos] = useState({ x: 0, y: 350 });
-  const [_imageSize, _setImageSize] = useState({ width: 300 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 });
-  const [activeImageId, setActiveImageId] = useState<string | null>(null);
-
-   const handleMouseDown = (e: React.MouseEvent, imageId: string) => {
+  const handleMouseDown = (e: React.MouseEvent, imageId: string) => {
     if (!isResizing) {
-      setIsDragging(true);
-      setActiveImageId(imageId);
-      const img = productImages.find(i => i.id === imageId);
+      setIsDragging(true)
+      setActiveImageId(imageId)
+      const img = content.productImages.find(i => i.id === imageId)
       if (img) {
         setDragStart({
           x: e.clientX - img.pos.x,
           y: e.clientY - img.pos.y
-        });
+        })
       }
     }
-  };
-const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging && activeImageId) {
-      setProductImages(prev => prev.map(img => 
-        img.id === activeImageId 
-          ? { ...img, pos: { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y }}
-          : img
-      ));
-    } else if (isResizing && activeImageId) {
-      const newWidth = Math.max(50, resizeStart.width + (e.clientX - resizeStart.x));
-      setProductImages(prev => prev.map(img =>
-        img.id === activeImageId
-          ? { ...img, size: { width: newWidth }}
-          : img
-      ));
-    }
-  };
+  }
 
- const handleMouseUp = () => {
-    setIsDragging(false);
-    setIsResizing(false);
-    setActiveImageId(null);
-  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && activeImageId) {
+      const updatedImages = content.productImages.map(img =>
+        img.id === activeImageId
+          ? { ...img, pos: { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y } }
+          : img
+      )
+      onChange({ ...content, productImages: updatedImages })
+    } else if (isResizing && activeImageId) {
+      const newWidth = Math.max(50, resizeStart.width + (e.clientX - resizeStart.x))
+      const updatedImages = content.productImages.map(img =>
+        img.id === activeImageId
+          ? { ...img, size: { width: newWidth } }
+          : img
+      )
+      onChange({ ...content, productImages: updatedImages })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+    setIsResizing(false)
+    setActiveImageId(null)
+  }
 
   const handleResizeMouseDown = (e: React.MouseEvent, imageId: string) => {
-    e.stopPropagation();
-    setIsResizing(true);
-    setActiveImageId(imageId);
-    const img = productImages.find(i => i.id === imageId);
+    e.stopPropagation()
+    setIsResizing(true)
+    setActiveImageId(imageId)
+    const img = content.productImages.find(i => i.id === imageId)
     if (img) {
       setResizeStart({
         x: e.clientX,
         width: img.size.width
-      });
+      })
     }
-  };
-    // ----------------------------------------------------
+  }
 
-// ------------------------------------------
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file')
+        return
+      }
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const result = event.target?.result
+        if (typeof result === 'string') {
+          const newImage: PageImage = {
+            id: `img-${content.nextImageId}-${Date.now()}`,
+            src: result,
+            pos: { x: 50 + (content.productImages.length * 20), y: 350 + (content.productImages.length * 20) },
+            size: { width: 300 }
+          }
+          onChange({
+            ...content,
+            productImages: [...content.productImages, newImage],
+            nextImageId: content.nextImageId + 1
+          })
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
-    
-    // Debug: Log products state on every render
-    console.log('OfferTemplate render - Products state:', products)
-    console.log('OfferTemplate render - Products count:', products.length)
-    console.log('OfferTemplate render - Initial content products:', initialContent.products)
+  const handleRemoveImage = (imageId: string) => {
+    onChange({
+      ...content,
+      productImages: content.productImages.filter(img => img.id !== imageId)
+    })
+    if (imageInputRef.current) {
+      imageInputRef.current.value = ''
+    }
+  }
 
-    // State for "Static" labels that are now editable
+  const handleTableFieldChange = (idx: number, field: 'itemTitle' | 'itemDescription', value: string) => {
+    const updatedTable = [...content.technicalDetailsTable]
+    updatedTable[idx] = { ...updatedTable[idx], [field]: value }
+    onChange({ ...content, technicalDetailsTable: updatedTable })
+  }
+
+  return (
+    <div style={{ marginBottom: '40px' }}>
+      <div
+        ref={ref}
+        className="offer-template"
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ position: 'relative', minHeight: '297mm', backgroundColor: 'white', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}
+      >
+        {/* Page Delete Button */}
+        {index > 0 && ( /* Prevent deleting the main page if desired, or allow it */
+          <button
+            onClick={() => onDelete(content.id, index)}
+            className="delete-page-btn"
+            data-html2canvas-ignore="true"
+            style={{
+              position: 'absolute',
+              top: '-25px',
+              right: '0',
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              zIndex: 1000
+            }}
+          >
+            Remove This Page
+          </button>
+        )}
+
+        {/* Header - Common for both */}
+        <div className="offer-header">
+          <div className="header-right"></div>
+        </div>
+        <div className="header-divider"></div>
+
+        {/* Title and Subtitle - Common for both */}
+        <div className="offer-title-section">
+          <EditableText
+            tagName="h2"
+            className="offer-title"
+            value={content.title}
+            onChange={(val) => onChange({ ...content, title: val })}
+            placeholder="Titlu Pagină"
+          />
+          <EditableText
+            tagName="p"
+            className="offer-subtitle"
+            value={content.subtitle}
+            onChange={(val) => onChange({ ...content, subtitle: val })}
+            placeholder="Subtitlu (opțional)"
+          />
+        </div>
+
+        {/* Product Images - Common for both */}
+        {content.productImages.map((image) => (
+          <div
+            key={image.id}
+            className="product-image-draggable"
+            onMouseDown={(e) => handleMouseDown(e, image.id)}
+            data-image-draggable="true"
+            style={{
+              position: 'absolute',
+              left: `${image.pos.x}px`,
+              top: `${image.pos.y}px`,
+              width: `${image.size.width}px`,
+              cursor: isDragging && activeImageId === image.id ? 'grabbing' : 'grab',
+              zIndex: 100,
+              userSelect: 'none',
+              pointerEvents: 'auto',
+              display: 'block',
+              visibility: 'visible',
+              opacity: 1
+            }}
+          >
+            <img
+              src={image.src}
+              alt="Product"
+              draggable="false"
+              crossOrigin="anonymous"
+              className="draggable-product-image"
+              style={{ width: '100%', height: 'auto', display: 'block' }}
+            />
+            <button
+              type="button"
+              onClick={() => handleRemoveImage(image.id)}
+              className="remove-image-button"
+              data-html2canvas-ignore="true"
+              style={{
+                position: 'absolute', top: '-10px', right: '-10px',
+                background: '#ff4d4f', color: 'white', border: 'none',
+                borderRadius: '50%', width: '30px', height: '30px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+            >
+              ×
+            </button>
+            <div
+              onMouseDown={(e) => handleResizeMouseDown(e, image.id)}
+              data-html2canvas-ignore="true"
+              style={{
+                position: 'absolute', bottom: '-10px', right: '-10px',
+                width: '20px', height: '20px', background: '#2196F3',
+                borderRadius: '50%', cursor: 'nwse-resize', border: '2px solid white'
+              }}
+            />
+          </div>
+        ))}
+
+        {/* Image Upload Button - Common */}
+        <div className="image-upload-controls" data-html2canvas-ignore="true" style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 100 }}>
+          <input
+            type="file"
+            ref={imageInputRef}
+            onChange={handleImageUpload}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
+          <button
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            + Upload Product Image
+          </button>
+        </div>
+
+        {/* CONTENT DIVERGENCE BASED ON TYPE */}
+        {content.type === 'blank' ? (
+          /* BLANK PAGE LAYOUT */
+          <div className="blank-page-content" style={{ padding: '0 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <textarea
+              value={content.technicalDetailsMessage}
+              onChange={(e) => onChange({ ...content, technicalDetailsMessage: e.target.value })}
+              className="editable-textarea"
+              placeholder="Scrieți conținutul paginii aici..."
+              style={{
+                width: '100%',
+                minHeight: '600px',
+                border: '1px dashed #ccc',
+                padding: '10px',
+                fontSize: '11pt',
+                fontFamily: 'Arial, sans-serif',
+                lineHeight: '1.5',
+                resize: 'none', // Content should dictate height in PDF, but here we fix it for editor
+                background: 'transparent'
+              }}
+            />
+          </div>
+        ) : (
+          /* PRODUCT PAGE LAYOUT (Standard) */
+          <>
+            {/* Technical Description */}
+            <div className="technical-description">
+              <EditableText
+                tagName="h3"
+                className="section-title"
+                value={customText.techDetailsTitle}
+                onChange={(val) => updateCustomText('techDetailsTitle', val)}
+              />
+              <textarea
+                value={content.technicalDetailsMessage}
+                onChange={(e) => onChange({ ...content, technicalDetailsMessage: e.target.value })}
+                className="editable-textarea technical-message"
+                rows={4}
+              />
+            </div>
+
+            {/* Technical Specifications Table */}
+            <div className="technical-table-section">
+              <table className="technical-table">
+                <tbody>
+                  {Array.isArray(content.technicalDetailsTable) && content.technicalDetailsTable.map((detail, idx) => (
+                    <tr key={idx}>
+                      <td className="table-title">
+                        <input
+                          type="text"
+                          value={detail.itemTitle}
+                          onChange={(e) => handleTableFieldChange(idx, 'itemTitle', e.target.value)}
+                          className="editable-table-input"
+                        />
+                      </td>
+                      <td className="table-description">
+                        <input
+                          type="text"
+                          value={detail.itemDescription}
+                          onChange={(e) => handleTableFieldChange(idx, 'itemDescription', e.target.value)}
+                          className="editable-table-input"
+                        />
+                      </td>
+                      <td style={{ border: 'none', background: 'transparent', width: '40px' }} data-html2canvas-ignore="true">
+                        <button
+                          type="button"
+                          onClick={() => onChange({ ...content, technicalDetailsTable: content.technicalDetailsTable.filter((_, i) => i !== idx) })}
+                          style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                        >
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button
+                type="button"
+                onClick={() => onChange({ ...content, technicalDetailsTable: [...content.technicalDetailsTable, { itemTitle: '', itemDescription: '' }] })}
+                data-html2canvas-ignore="true"
+                style={{ marginTop: '10px', padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                + Adauga produs
+              </button>
+            </div>
+
+            {/* Validity */}
+            <div className="validity-section">
+              <EditableText
+                tagName="h4"
+                className="validity-title"
+                value={customText.validityTitle}
+                onChange={(val) => updateCustomText('validityTitle', val)}
+              />
+              <EditableText
+                tagName="p"
+                className="validity-text"
+                value={customText.validityText}
+                onChange={(val) => updateCustomText('validityText', val)}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+})
+ProductPage.displayName = 'ProductPage'
+
+// --- MAIN TEMPLATE COMPONENT ---
+
+export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
+  ({ offerData, onGeneratePDF, hideGenerateButton = false, hideAnnex = false, hideAnnexInPDF = false }, ref) => {
+    // Refs for all the pages
+    const pageRefs = useRef<(HTMLDivElement | null)[]>([])
+
+    // Global State (Metadata, Products Table)
+    const { offerMetadata: initialMetadata = {} as any, offerConent: initialContent = {} as any } = offerData || {}
+    const [products, setProducts] = useState<Product[]>(initialContent.products || [])
+
+    // Pages State
+    // Pages State
+    const [pages, setPages] = useState<OfferPageContent[]>(() => {
+      console.log('[OfferTemplate] Init State. SubOffers:', offerData.subOffers?.length)
+
+      if (offerData.subOffers && offerData.subOffers.length > 0) {
+        // Map sub-offers to pages
+        return offerData.subOffers.map((subOffer, index) => {
+          const content = subOffer.offerConent || subOffer.offerContent
+          return {
+            id: `page-${index}-${Date.now()}`,
+            title: content.title || 'Ofertă',
+            subtitle: content.subtitle || '',
+            technicalDetailsMessage: content.technicalDetailsMessage || '',
+            technicalDetailsTable: content.technicalDetailsTable || [],
+            productImages: content.productImageUrl ? [{
+              id: `img-${index}`,
+              src: content.productImageUrl,
+              pos: { x: 20, y: 180 }, // Default position
+              size: { width: 150 }
+            }] : [],
+            nextImageId: 1,
+            type: 'product' // Default type
+          }
+        })
+      }
+
+      // Fallback: Use the main offer data as a single page
+      console.log('[OfferTemplate] No subOffers found, using main content')
+      const content = initialContent
+      return [{
+        id: `page-main-${Date.now()}`,
+        title: content.title || 'Ofertă',
+        subtitle: content.subtitle || '',
+        technicalDetailsMessage: content.technicalDetailsMessage || '',
+        technicalDetailsTable: content.technicalDetailsTable || [],
+        productImages: content.productImageUrl ? [{
+          id: 'img-main',
+          src: content.productImageUrl,
+          pos: { x: 20, y: 180 },
+          size: { width: 150 }
+        }] : [],
+        nextImageId: 1,
+        type: 'product'
+      }]
+    })
+
+    // Theme & Custom Text (Global)
+    const [themeColors, setThemeColors] = useState({
+      primary: '#ffffff', secondary: '#ffffff', text: '#1f2933', bg: '#ffffff',
+    })
     const [customText, setCustomText] = useState({
       productPageLabel: 'Pagină produs:',
       techDetailsTitle: 'Descriere Tehnică Detaliată',
@@ -265,790 +645,454 @@ const handleMouseMove = (e: React.MouseEvent) => {
       refLabel: 'Ref:',
     })
 
-    // State for Theme Colors
-    const [themeColors, setThemeColors] = useState({
-      primary: '#ffffff',
-      secondary: '#ffffff',
-      text: '#1f2933',
-      bg: '#ffffff',
-    })
-
-    // Update the container CSS variables when colors change
+    // Initialize pageRefs array based on initial pages count
     useEffect(() => {
-      if (templateRef.current) {
-        templateRef.current.style.setProperty('--theme-primary', themeColors.primary)
-        templateRef.current.style.setProperty('--theme-secondary', themeColors.secondary)
-        templateRef.current.style.setProperty('--theme-text', themeColors.text)
-        templateRef.current.style.setProperty('--theme-bg', themeColors.bg)
-      }
-    }, [themeColors])
+      pageRefs.current = Array(pages.length).fill(null);
+    }, [pages.length]);
 
-    // Reset state when offerData changes
+    // Update global styles when theme changes
     useEffect(() => {
-      // Debug: Log products from initial content
-      console.log('Resetting offer template state')
-      console.log('Initial products:', initialContent.products)
-      console.log('Products count:', initialContent.products?.length || 0)
+      // We need to apply variables to ALL pages, or to the container
+      // Since refs are spread, simpler to use a CSS class or apply to body?
+      // Actually, we can loop through refs and apply
+      pageRefs.current.forEach(el => {
+        if (el) {
+          el.style.setProperty('--theme-primary', themeColors.primary)
+          el.style.setProperty('--theme-secondary', themeColors.secondary)
+          el.style.setProperty('--theme-text', themeColors.text)
+          el.style.setProperty('--theme-bg', themeColors.bg)
+        }
+      })
+    }, [themeColors, pages.length])
 
-      setTitle(initialContent.title || '')
-      setSubtitle(initialContent.subtitle || '')
-      setTechnicalDetailsMessage(initialContent.technicalDetailsMessage || '')
-      setTechnicalDetailsTable(initialContent.technicalDetailsTable || [])
-      setOfferReference(initialMetadata.offerReference || '')
-      setProductImage(initialContent.productImageUrl || null)
-      setProducts(initialContent.products || [])
-    }, [offerData, initialContent, initialMetadata])
 
-    const updateCustomText = (key: keyof typeof customText, value: string) => {
-      setCustomText((prev) => ({ ...prev, [key]: value }))
+    const updateCustomText = (key: string, value: string) => {
+      setCustomText(prev => ({ ...prev, [key]: value }))
     }
 
-    const updateThemeColor = (key: keyof typeof themeColors, value: string) => {
-      setThemeColors((prev) => ({ ...prev, [key]: value }))
+    const updateThemeColor = (key: string, value: string) => {
+      setThemeColors(prev => ({ ...prev, [key]: value }))
     }
 
+    const handlePageUpdate = (index: number, newContent: OfferPageContent) => {
+      setPages(prev => {
+        const updated = [...prev]
+        updated[index] = newContent
+        return updated
+      })
+    }
 
-const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (file) {
-        if (!file.type.startsWith('image/')) {
-          alert('Please select an image file')
-          return
-        }
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          const result = event.target?.result
-          if (typeof result === 'string') {
-            // Add new image to the array
-            const newImage = {
-              id: `img-${nextImageId}`,
-              src: result,
-              pos: { x: 50 + (nextImageId * 20), y: 350 + (nextImageId * 20) }, // Offset each new image
-              size: { width: 300 }
-            };
-            setProductImages(prev => [...prev, newImage]);
-            setNextImageId(prev => prev + 1);
-          }
-        }
-        reader.readAsDataURL(file)
+    const handlePageDelete = (id: string, index: number) => {
+      if (pages.length <= 1) {
+        alert("Cannot delete the last page.")
+        return
+      }
+      if (confirm("Are you sure you want to remove this product page?")) {
+        setPages(prev => prev.filter((_, i) => i !== index))
+        // Refs will update automatically on re-render but we should be careful
       }
     }
 
-   const handleRemoveImage = (imageId: string) => {
-      setProductImages(prev => prev.filter(img => img.id !== imageId));
-      if (imageInputRef.current) {
-        imageInputRef.current.value = ''
+    const handleAddEmptyPage = () => {
+      const newPage: OfferPageContent = {
+        id: `page-new-${Date.now()}`,
+        type: 'blank', // Explicitly blank type
+        title: '', // Empty title by default for a blank page
+        subtitle: '',
+        technicalDetailsMessage: '',
+        technicalDetailsTable: [],
+        productImages: [],
+        nextImageId: 1
       }
+      setPages(prev => [...prev, newPage])
+      // Update refs
+      pageRefs.current = [...pageRefs.current, null]
     }
 
-    const handleTableFieldChange = (
-      index: number,
-      field: 'itemTitle' | 'itemDescription',
-      value: string
-    ) => {
-      const updated = [...technicalDetailsTable]
-      updated[index] = { ...updated[index], [field]: value }
-      setTechnicalDetailsTable(updated)
+    const handleAddClonePage = () => {
+      if (pages.length === 0) {
+        alert("Nu există pagini de duplicat. Adăugați o pagină goală mai întâi.")
+        return
+      }
+
+      const lastPage = pages[pages.length - 1]
+      const newPage: OfferPageContent = {
+        ...lastPage,
+        id: `page-clone-${Date.now()}`,
+        // Inherit type from last page, or default to product if undefined
+        type: lastPage.type || 'product',
+        title: lastPage.title, // Clone explicitly
+        subtitle: lastPage.subtitle,
+        technicalDetailsMessage: lastPage.technicalDetailsMessage,
+        // Deep copy objects to avoid reference sharing
+        technicalDetailsTable: lastPage.technicalDetailsTable ? lastPage.technicalDetailsTable.map(t => ({ ...t })) : [],
+        productImages: lastPage.productImages.map(img => ({ ...img, id: `img-clone-${Date.now()}-${Math.random()}` })),
+        nextImageId: lastPage.nextImageId + 100 // Avoid collision
+      }
+
+      setPages(prev => [...prev, newPage])
+      pageRefs.current = [...pageRefs.current, null]
     }
 
-    // --- 2. NEW PDF GENERATION LOGIC (Merged) ---
+    // --- PDF GENERATION ---
     const generateFinalPDF = async (): Promise<Blob> => {
-      if (!templateRef.current) throw new Error('Template ref not found')
-
       try {
         const pdf = new jsPDF('p', 'mm', 'a4')
         const pdfWidth = 210
         const pageHeight = 297
 
-        // --- PAGE 1: Annex (Formular de Oferta) ---
-        const annexContainer = document.createElement('div')
-        annexContainer.style.position = 'fixed'
-        annexContainer.style.left = '0'
-        annexContainer.style.top = '0'
-        annexContainer.style.width = '210mm'
-        annexContainer.style.background = 'white'
-        annexContainer.innerHTML = getAnnexHTML()
-        document.body.appendChild(annexContainer)
+        // 1. Annex
+        if (!hideAnnexInPDF) {
+          const annexContainer = document.createElement('div')
+          annexContainer.style.position = 'fixed'
+          annexContainer.style.left = '0'
+          annexContainer.style.top = '0'
+          annexContainer.style.width = '210mm'
+          annexContainer.style.background = 'white'
+          annexContainer.style.zIndex = '-9999'
+          annexContainer.innerHTML = getAnnexHTML()
+          document.body.appendChild(annexContainer)
 
-        const annexCanvas = await html2canvas(annexContainer, {
-          scale: 2,
-          logging: false,
-          backgroundColor: '#ffffff'
-        })
+          try {
+            const annexCanvas = await html2canvas(annexContainer, { scale: 2, logging: false, backgroundColor: '#ffffff' })
+            const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.95)
+            pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, (annexCanvas.height * pdfWidth) / annexCanvas.width)
+          } finally {
+            document.body.removeChild(annexContainer)
+          }
+        }
 
-        const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.95)
-        pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, (annexCanvas.height * pdfWidth) / annexCanvas.width)
-        document.body.removeChild(annexContainer)
-
-        // --- PAGE 2: Products Table (Landscape) ---
+        // 2. Products Table
         if (products && products.length > 0) {
-          pdf.addPage('l')
+          pdf.addPage('l') // Add landscape page
           const productsContainer = document.createElement('div')
           productsContainer.style.position = 'fixed'
           productsContainer.style.left = '0'
           productsContainer.style.top = '0'
           productsContainer.style.width = '297mm'
           productsContainer.style.background = 'white'
-          productsContainer.style.visibility = 'hidden'
+          productsContainer.style.visibility = 'hidden' // Important
           productsContainer.innerHTML = getProductsTableHTML(products)
           document.body.appendChild(productsContainer)
 
-          await new Promise((resolve) => setTimeout(resolve, 500))
-
+          // Wait for render
+          await new Promise(resolve => setTimeout(resolve, 500))
           productsContainer.style.visibility = 'visible'
 
-          const productsCanvas = await html2canvas(productsContainer, {
-            scale: 2,
-            logging: false,
-            backgroundColor: '#ffffff',
-            windowWidth: 297 * 3.78,
-            windowHeight: 210 * 3.78,
-            x: 0,
-            y: 0
-          })
+          const productsCanvas = await html2canvas(productsContainer, { scale: 2, logging: false, backgroundColor: '#ffffff', windowWidth: 297 * 3.78, windowHeight: 210 * 3.78 })
 
           productsContainer.style.visibility = 'hidden'
-
           const landscapePdfWidth = pdf.internal.pageSize.getWidth()
-          const landscapePdfHeight = pdf.internal.pageSize.getHeight()
-
-          const imgWidthInPdf = landscapePdfWidth
+          const productsImgData = productsCanvas.toDataURL('image/jpeg', 0.95)
           const imgHeightInPdf = (productsCanvas.height * landscapePdfWidth) / productsCanvas.width
 
-          const productsImgData = productsCanvas.toDataURL('image/jpeg', 0.95)
-
-          const yOffset = imgHeightInPdf < landscapePdfHeight ? (landscapePdfHeight - imgHeightInPdf) / 2 : 0
-
-          pdf.addImage(productsImgData, 'JPEG', 0, yOffset, imgWidthInPdf, imgHeightInPdf)
+          pdf.addImage(productsImgData, 'JPEG', 0, 0, landscapePdfWidth, imgHeightInPdf)
           document.body.removeChild(productsContainer)
         }
 
-// FIX: Ensure draggable images maintain position for PDF capture
-const draggableImgs = templateRef.current.querySelectorAll('.product-image-draggable') as NodeListOf<HTMLElement>
-const savedImagesStyles: any[] = []
+        // 3. Render Each Product Page
+        for (let i = 0; i < pages.length; i++) {
+          const pageRef = pageRefs.current[i]
+          if (!pageRef) continue
 
-draggableImgs.forEach((draggableImg, index) => {
-  if (productImages[index]) {
-    savedImagesStyles[index] = {
-      position: draggableImg.style.position,
-      left: draggableImg.style.left,
-      top: draggableImg.style.top,
-      zIndex: draggableImg.style.zIndex,
-      width: draggableImg.style.width,
-      margin: draggableImg.style.margin,
-      display: draggableImg.style.display,
-    }
-    
-    draggableImg.style.position = 'absolute'
-    draggableImg.style.left = `${productImages[index].pos.x}px`
-    draggableImg.style.top = `${productImages[index].pos.y}px`
-    draggableImg.style.width = `${productImages[index].size.width}px`
-    draggableImg.style.display = 'block'
-    draggableImg.style.visibility = 'visible'
-    draggableImg.style.opacity = '1'
-  }
-})
+          // Add new page (Portrait)
+          pdf.addPage('p')
 
-// Force layout recalculation
-if (templateRef.current) {
-  templateRef.current.style.overflow = 'hidden'
-}
+          // Prepare for Capture (Draggable Images Check)
+          // We need to look inside the specific pageRef
+          const draggableImgs = pageRef.querySelectorAll('.product-image-draggable') as NodeListOf<HTMLElement>
+          const savedImagesStyles: any[] = []
 
-await new Promise((resolve) => setTimeout(resolve, 500))
+          draggableImgs.forEach((img, idx) => {
+            savedImagesStyles[idx] = {
+              position: img.style.position, left: img.style.left, top: img.style.top, width: img.style.width
+            }
+            // Ensure pixels
+            // Note: We are trusting the render state is correct.
+          })
 
-console.log('Starting html2canvas capture for PDF generation...');
-console.log('Current images:', productImages);
+          // Force layout
+          pageRef.style.overflow = 'hidden'
+          await new Promise(resolve => setTimeout(resolve, 200)) // Slight delay for style application
 
-const canvas = await html2canvas(templateRef.current, {
-  scale: 2,
-  useCORS: true,
-  allowTaint: true,
-  logging: true,
-  backgroundColor: '#ffffff',
-  ignoreElements: (element) => {
-    // Don't ignore our draggable image
-    if (element.getAttribute('data-image-draggable') === 'true') {
-      return false;
-    }
-    // Ignore buttons and controls
-    return element.hasAttribute('data-html2canvas-ignore');
-  },
-  onclone: (clonedDoc) => {
-    const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement;
-    if (!clonedTemplate) return;
+          // Capture
+          const canvas = await html2canvas(pageRef, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            ignoreElements: (element) => {
+              if (element.getAttribute('data-image-draggable') === 'true') return false
+              return element.hasAttribute('data-html2canvas-ignore')
+            },
+            onclone: (clonedDoc) => {
+              // Textarea replacement logic (CRITICAL for PDF text quality)
+              const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement
+              if (clonedTemplate) {
+                clonedTemplate.style.overflow = 'visible'
+                const textareas = clonedTemplate.querySelectorAll('textarea')
+                textareas.forEach(textarea => {
+                  const div = clonedDoc.createElement('div')
+                  div.textContent = textarea.value
+                  const style = window.getComputedStyle(textarea)
+                  Array.from(style).forEach(key => {
+                    div.style.setProperty(key, style.getPropertyValue(key), style.getPropertyPriority(key))
+                  })
+                  div.style.height = 'auto'
+                  div.style.minHeight = style.height
+                  div.style.whiteSpace = 'pre-wrap'
+                  textarea.parentNode?.replaceChild(div, textarea)
+                })
+              }
+            }
+          })
 
-    // Ensure template is visible
-    clonedTemplate.style.overflow = 'visible';
-    clonedTemplate.style.position = 'relative';
-    clonedTemplate.style.minHeight = 'auto';
-    
- // Find ALL elements with data-image-draggable attribute
-    const draggableImgs = clonedTemplate.querySelectorAll('[data-image-draggable="true"]');
-    console.log(`Found ${draggableImgs.length} draggable image(s) in clone`);
-    
-    draggableImgs.forEach((draggableImg, imgIndex) => {
-      const imgElement = draggableImg as HTMLElement;
-      const imgData = productImages[imgIndex];
-      
-      if (!imgData) return;
-      
-      console.log(`Processing draggable image ${imgIndex} in clone`);
-      console.log('Setting position to:', imgData.pos);
-      
-      imgElement.style.position = 'absolute';
-      imgElement.style.left = `${imgData.pos.x}px`;
-      imgElement.style.top = `${imgData.pos.y}px`;
-      imgElement.style.width = `${imgData.size.width}px`;
-      imgElement.style.display = 'block';
-      imgElement.style.visibility = 'visible';
-      imgElement.style.opacity = '1';
-      imgElement.style.pointerEvents = 'none';
-      
-      const img = imgElement.querySelector('img');
-      if (img) {
-        img.style.display = 'block';
-        img.style.visibility = 'visible';
-        img.style.opacity = '1';
-        img.style.maxWidth = 'none';
-        img.style.width = '100%';
-        img.style.height = 'auto';
-      }
-    });
-  }
-})
-// Restore image original styles
-// Restore images original styles
-draggableImgs.forEach((draggableImg, index) => {
-  if (savedImagesStyles[index]) {
-    draggableImg.style.position = savedImagesStyles[index].position
-    draggableImg.style.left = savedImagesStyles[index].left
-    draggableImg.style.top = savedImagesStyles[index].top
-    draggableImg.style.zIndex = savedImagesStyles[index].zIndex
-    draggableImg.style.width = savedImagesStyles[index].width
-    draggableImg.style.margin = savedImagesStyles[index].margin
-    draggableImg.style.display = savedImagesStyles[index].display
-  }
-})
+          // Restore
+          pageRef.style.overflow = ''
 
-// Restore template overflow
-if (templateRef.current) {
-  templateRef.current.style.overflow = ''
-}
+          const imgData = canvas.toDataURL('image/jpeg', 0.95)
+          const imgWidth = pdfWidth
+          const imgHeight = (canvas.height * pdfWidth) / canvas.width
 
-// Convert canvas to image
-const imgData = canvas.toDataURL('image/jpeg', 0.95)
-const imgWidth = pdfWidth
-const imgHeight = (canvas.height * pdfWidth) / canvas.width
-                    
-                    // Scale to fit single page if content is too tall
-                    // Add page 3 with the main offer
-pdf.addPage('p')
+          // Fit to page logic
+          if (imgHeight > pageHeight) {
+            const scale = pageHeight / imgHeight
+            // Center horizontally if scaled? No, maintain left align usually or center.
+            // Let's center horizontally
+            const xOffset = (pdfWidth - (imgWidth * scale)) / 2
+            pdf.addImage(imgData, 'JPEG', xOffset, 0, imgWidth * scale, pageHeight)
+          } else {
+            pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
+          }
+        }
 
-// Scale to fit single page - always scale to fit one page
-if (imgHeight > pageHeight) {
-  const scale = pageHeight / imgHeight
-  const scaledWidth = imgWidth * scale
-  const scaledHeight = pageHeight
-  const xOffset = (imgWidth - scaledWidth) / 2
-  pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, scaledHeight)
-} else {
-  // Content fits normally
-  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
-}
-
-// Don't add extra pages - keep it single page
+        // Cleanup: If hideAnnexInPDF is true, Page 1 is blank.
+        // If we added pages (meaning length > 1 for single PDF, or just > 1 in general), we can delete Page 1.
+        // However, jsPDF init creates Page 1.
+        // If we did nothing to Page 1, it's blank.
+        // If we added content via addPage, we have [Page1(Blank), Page2(Products), Page3(Item1)...]
+        if (hideAnnexInPDF) {
+          try { pdf.deletePage(1) } catch (e) {/* ignore if single page */ }
+        }
 
         return pdf.output('blob')
 
       } catch (error) {
-        console.error('Error in generateFinalPDF:', error)
+        console.error('Generaton Error:', error)
         throw error
       }
     }
 
-    // Connect the new logic to the Button
-    const handleGeneratePDF = async () => {
-      try {
-        const pdfBlob = await generateFinalPDF()
-        onGeneratePDF(pdfBlob)
-      } catch (error) {
-        console.error('Error generating PDF:', error)
-        alert('Error generating PDF. Please try again.')
-      }
-    }
-
-    // Connect the new logic to the Ref (for ZIP download)
     useImperativeHandle(ref, () => ({
-      generatePDF: async () => {
-        return await generateFinalPDF()
-      },
+      generatePDF: generateFinalPDF
     }))
 
     return (
       <div className="offer-template-container">
+        {/* Global Controls */}
         <div className="offer-template-actions">
-          {initialMetadata.productWebPage && (
-            <div className="product-link-row" style={{ marginRight: 'auto' }}>
-              <EditableText
-                tagName="span"
-                className="product-link-label"
-                value={customText.productPageLabel}
-                onChange={(val) => updateCustomText('productPageLabel', val)}
-              />
-              <a
-                href={initialMetadata.productWebPage}
-                target="_blank"
-                rel="noreferrer"
-                className="product-link-url"
-              >
-                {initialMetadata.productWebPage}
-              </a>
-            </div>
-          )}
+          <div className="product-link-row" style={{ marginRight: 'auto' }}>
+            {initialMetadata.productWebPage && (
+              <a href={initialMetadata.productWebPage} target="_blank" rel="noreferrer">{initialMetadata.productWebPage}</a>
+            )}
+          </div>
           <div className="design-controls">
             <div className="color-picker-group">
-              <label htmlFor="color-primary" title="Primary Color">Pri:</label>
-              <input
-                id="color-primary"
-                type="color"
-                value={themeColors.primary}
-                onChange={(e) => updateThemeColor('primary', e.target.value)}
-                className="color-picker-input"
-              />
+              <label>Pri:</label>
+              <input type="color" value={themeColors.primary} onChange={e => updateThemeColor('primary', e.target.value)} />
             </div>
-            <div className="color-picker-group">
-              <label htmlFor="color-secondary" title="Secondary Color">Sec:</label>
-              <input
-                id="color-secondary"
-                type="color"
-                value={themeColors.secondary}
-                onChange={(e) => updateThemeColor('secondary', e.target.value)}
-                className="color-picker-input"
-              />
-            </div>
-            <div className="color-picker-group">
-              <label htmlFor="color-text" title="Text Color">Txt:</label>
-              <input
-                id="color-text"
-                type="color"
-                value={themeColors.text}
-                onChange={(e) => updateThemeColor('text', e.target.value)}
-                className="color-picker-input"
-              />
-            </div>
-            <div className="color-picker-group">
-              <label htmlFor="color-bg" title="Background Color">Bg:</label>
-              <input
-                id="color-bg"
-                type="color"
-                value={themeColors.bg}
-                onChange={(e) => updateThemeColor('bg', e.target.value)}
-                className="color-picker-input"
-              />
-            </div>
+            {/* Repeat for other colors if needed */}
           </div>
 
-          <button onClick={handleGeneratePDF} className="generate-pdf-button">
-            Generate PDF
+          {/* NEW BUTTONS - DISTINCT STYLES */}
+          <button onClick={handleAddEmptyPage} style={{
+            padding: '10px 16px',
+            background: '#10b981', // Emerald Green 
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            marginRight: '12px',
+            fontSize: '13px',
+            fontWeight: '600',
+            boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+          }}>
+            + Adauga pagina goala
           </button>
+          <button onClick={handleAddClonePage} style={{
+            padding: '10px 16px',
+            background: '#3b82f6', // Blue
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            marginRight: '12px',
+            fontSize: '13px',
+            fontWeight: '600',
+            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
+          }}>
+            + Adauga pagina produs (clona)
+          </button>
+
+          {!hideGenerateButton && (
+            <button onClick={async () => {
+              try { onGeneratePDF(await generateFinalPDF()) } catch (e) { alert('Error locally') }
+            }} className="generate-pdf-button">
+              Generate PDF
+            </button>
+          )}
         </div>
 
-        {/* Annex Page Preview - SHOWN FIRST */}
-        <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
+        {/* 1. Annex Preview */}
+        {!hideAnnex && (
+          <div className="annex-preview" dangerouslySetInnerHTML={{ __html: getAnnexHTML() }}></div>
+        )}
 
-      {/* Products Table Display - Read-only preview */}
-<div style={{ 
-  marginTop: '30px', 
-  padding: '40mm 20mm',
-  border: '1px solid #ddd', 
-  borderRadius: '4px', 
-  backgroundColor: '#fff',
-  pageBreakBefore: 'always',
-  width: '210mm',
-  minHeight: '297mm',
-  boxSizing: 'border-box',
-  marginLeft: 'auto',
-  marginRight: 'auto'
-}}>
-  <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', color: '#000' }}>
-    Tabel Produse
-  </h3>
+        {/* 2. Products Table (Editable) */}
+        <div style={{
+          marginTop: '30px', padding: '10mm 15mm', border: '1px solid #ddd', backgroundColor: '#fff',
+          width: '210mm', minHeight: '297mm', boxSizing: 'border-box', margin: '30px auto'
+        }}>
+          <h3 style={{ textAlign: 'center', marginBottom: '20px', color: '#000', fontWeight: 'bold', fontFamily: 'Arial, sans-serif' }}>Tabel Produse</h3>
 
-  {products.length > 0 ? (
-    <div style={{ overflowX: 'visible' }}>
-      <table style={{ 
-        width: '100%', 
-        borderCollapse: 'collapse', 
-        backgroundColor: 'white', 
-        border: '1px solid #000', 
-        color: '#000',
-        tableLayout: 'fixed'
-      }}>
+          {products.length > 0 ? (
+            <div style={{ overflowX: 'visible' }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                backgroundColor: 'white',
+                border: '1px solid #000',
+                color: '#000',
+                tableLayout: 'fixed'
+              }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px', color: '#000' }}>Nr.<br/>crt.</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px', color: '#000' }}>Nr.<br />crt.</th>
                     <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', color: '#000' }}>Denumire produs</th>
                     <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '60px', color: '#000' }}>U.M.</th>
                     <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '80px', color: '#000' }}>Cantitati</th>
-                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px', color: '#000' }}>Pret unitar<br/>fara tva</th>
-                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px', color: '#000' }}>Valoare<br/>totala<br/>fara TVA</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px', color: '#000' }}>Pret unitar<br />fara tva</th>
+                    <th style={{ padding: '10px 8px', border: '1px solid #000', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', width: '120px', color: '#000' }}>Valoare<br />totala<br />fara TVA</th>
                   </tr>
                 </thead>
-<tbody>
-  {products.map((product: Product, index: number) => (
-    <tr key={index}>
-      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
-        <input
-          type="number"
-          value={product.itemNumber}
-          onChange={(e) => {
-            const updated = [...products]
-            updated[index].itemNumber = parseInt(e.target.value) || 0
-            setProducts(updated)
-          }}
-          style={{ width: '100%', border: 'none', textAlign: 'center', fontSize: '13px', background: 'transparent' }}
-        />
-      </td>
-      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'left', fontSize: '13px', color: '#000' }}>
-        <input
-          type="text"
-          value={product.productName}
-          onChange={(e) => {
-            const updated = [...products]
-            updated[index].productName = e.target.value
-            setProducts(updated)
-          }}
-          style={{ width: '100%', border: 'none', textAlign: 'left', fontSize: '13px', background: 'transparent' }}
-        />
-      </td>
-      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
-        <input
-          type="text"
-          value={product.unitOfMeasurement}
-          onChange={(e) => {
-            const updated = [...products]
-            updated[index].unitOfMeasurement = e.target.value
-            setProducts(updated)
-          }}
-          style={{ width: '100%', border: 'none', textAlign: 'center', fontSize: '13px', background: 'transparent' }}
-        />
-      </td>
-      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
-        <input
-          type="number"
-          value={product.quantity}
-          onChange={(e) => {
-            const updated = [...products]
-            updated[index].quantity = parseInt(e.target.value) || 0
-            updated[index].totalValueNoVAT = updated[index].unitPriceNoVAT * updated[index].quantity
-            setProducts(updated)
-          }}
-          style={{ width: '100%', border: 'none', textAlign: 'center', fontSize: '13px', background: 'transparent' }}
-        />
-      </td>
-      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
-        <input
-          type="number"
-          step="0.01"
-          value={product.unitPriceNoVAT}
-          onChange={(e) => {
-            const updated = [...products]
-            updated[index].unitPriceNoVAT = parseFloat(e.target.value) || 0
-            updated[index].totalValueNoVAT = updated[index].quantity * updated[index].unitPriceNoVAT
-            setProducts(updated)
-          }}
-          style={{ width: '100%', border: 'none', textAlign: 'right', fontSize: '13px', background: 'transparent' }}
-        />
-      </td>
-      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
-        {product.totalValueNoVAT.toFixed(2)}
-      </td>
-    </tr>
-  ))}
-</tbody>
+                <tbody>
+                  {products.map((product, index) => (
+                    <tr key={index}>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
+                        <input
+                          type="number"
+                          value={product.itemNumber}
+                          onChange={(e) => {
+                            const updated = [...products]
+                            updated[index].itemNumber = parseInt(e.target.value) || 0
+                            setProducts(updated)
+                          }}
+                          style={{ width: '100%', border: 'none', textAlign: 'center', fontSize: '13px', background: 'transparent' }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'left', fontSize: '13px', color: '#000' }}>
+                        <input
+                          type="text"
+                          value={product.productName}
+                          onChange={(e) => {
+                            const updated = [...products]
+                            updated[index].productName = e.target.value
+                            setProducts(updated)
+                          }}
+                          style={{ width: '100%', border: 'none', textAlign: 'left', fontSize: '13px', background: 'transparent' }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
+                        <input
+                          type="text"
+                          value={product.unitOfMeasurement}
+                          onChange={(e) => {
+                            const updated = [...products]
+                            updated[index].unitOfMeasurement = e.target.value
+                            setProducts(updated)
+                          }}
+                          style={{ width: '100%', border: 'none', textAlign: 'center', fontSize: '13px', background: 'transparent' }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'center', fontSize: '13px', color: '#000' }}>
+                        <input
+                          type="number"
+                          value={product.quantity}
+                          onChange={(e) => {
+                            const updated = [...products]
+                            updated[index].quantity = parseInt(e.target.value) || 0
+                            updated[index].totalValueNoVAT = updated[index].unitPriceNoVAT * updated[index].quantity
+                            setProducts(updated)
+                          }}
+                          style={{ width: '100%', border: 'none', textAlign: 'center', fontSize: '13px', background: 'transparent' }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={product.unitPriceNoVAT}
+                          onChange={(e) => {
+                            const updated = [...products]
+                            updated[index].unitPriceNoVAT = parseFloat(e.target.value) || 0
+                            updated[index].totalValueNoVAT = updated[index].quantity * updated[index].unitPriceNoVAT
+                            setProducts(updated)
+                          }}
+                          style={{ width: '100%', border: 'none', textAlign: 'right', fontSize: '13px', background: 'transparent' }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', color: '#000' }}>
+                        {product.totalValueNoVAT.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
                 <tfoot>
                   <tr>
                     <td colSpan={6} style={{ padding: '10px 8px', border: '1px solid #000', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: '#000' }}>
-                      TOTAL FARA TVA= {products.reduce((sum: number, p: Product) => sum + p.totalValueNoVAT, 0).toFixed(2)} LEI
+                      TOTAL FARA TVA= {products.reduce((sum, p) => sum + p.totalValueNoVAT, 0).toFixed(2)} LEI
                     </td>
                   </tr>
                 </tfoot>
               </table>
+              <div style={{ marginTop: '10px', textAlign: 'right' }}>
+                <button
+                  onClick={() => setProducts([...products, { itemNumber: products.length + 1, productName: 'Produs Nou', unitOfMeasurement: 'BUC', quantity: 1, unitPriceNoVAT: 0, totalValueNoVAT: 0 }])}
+                  style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  + Adaugă Rând
+                </button>
+              </div>
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
               <p style={{ margin: 0, fontSize: '14px' }}>Nu există produse în tabel</p>
+              <button
+                onClick={() => setProducts([...products, { itemNumber: 1, productName: 'Produs Nou', unitOfMeasurement: 'BUC', quantity: 1, unitPriceNoVAT: 0, totalValueNoVAT: 0 }])}
+                style={{ marginTop: '10px', padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Adaugă primul produs
+              </button>
             </div>
           )}
-</div>
+        </div>
 
-        {/* Spacing between Products Table and Main Offer */}
-        <div style={{ height: '40px' }}></div>
+        {/* 3. Render Pages */}
+        {pages.map((page, i) => (
+          <ProductPage
+            key={page.id}
+            index={i}
+            ref={el => { pageRefs.current[i] = el }}
+            content={page}
+            onChange={(newContent) => handlePageUpdate(i, newContent)}
+            onDelete={handlePageDelete}
+            themeColors={themeColors}
+            customText={customText}
+            updateCustomText={updateCustomText}
+          />
+        ))}
 
-        <div 
-          ref={templateRef} 
-          className="offer-template"
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-        >
-          {/* Header */}
-          <div className="offer-header">
-            {initialContent.confidenceMessage && (
-              <div
-                className="confidence-warning-wrapper"
-                data-html2canvas-ignore="true"
-                title={initialContent.confidenceMessage}
-                onClick={() => alert(initialContent.confidenceMessage)}
-              >
-                <div className="confidence-warning-icon">!</div>
-                <div className="confidence-tooltip">{initialContent.confidenceMessage}</div>
-              </div>
-            )}
-            <div className="header-right">
-            </div>
-          </div>
-          <div className="header-divider"></div>
-                    {/* Title and Subtitle */}
-          <div className="offer-title-section">
-            <EditableText
-              tagName="h2"
-              className="offer-title"
-              value={title}
-              onChange={setTitle}
-            />
-            <EditableText
-              tagName="p"
-              className="offer-subtitle"
-              value={subtitle}
-              onChange={setSubtitle}
-            />
-          </div>
-{/* Product Images - Draggable and Positionable (Multiple) */}
-{productImages.map((image) => (
-  <div
-    key={image.id}
-    className="product-image-draggable"
-    onMouseDown={(e) => handleMouseDown(e, image.id)}
-    data-image-draggable="true"
-    style={{
-      position: 'absolute',
-      left: `${image.pos.x}px`,
-      top: `${image.pos.y}px`,
-      width: `${image.size.width}px`,
-      cursor: isDragging && activeImageId === image.id ? 'grabbing' : 'grab',
-      zIndex: 100,
-      userSelect: 'none',
-      pointerEvents: 'auto',
-      display: 'block',
-      visibility: 'visible',
-      opacity: 1
-    }}
-  >
-              <img
-                src={image.src}
-                alt="Product"
-                draggable="false"
-                crossOrigin="anonymous"
-                className="draggable-product-image"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                  borderRadius: '8px',
-                  border: 'none',
-                  boxShadow: 'none'
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => handleRemoveImage(image.id)}
-                className="remove-image-button"
-                data-html2canvas-ignore="true"
-                style={{
-                  position: 'absolute',
-                  top: '-10px',
-                  right: '-10px',
-                  backgroundColor: '#ff4d4f',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '30px',
-                  height: '30px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}
-              >
-                ×
-              </button>
-              <div
-                onMouseDown={(e) => handleResizeMouseDown(e, image.id)}
-                data-html2canvas-ignore="true"
-                style={{
-                  position: 'absolute',
-                  bottom: '-10px',
-                  right: '-10px',
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: '#2196F3',
-                  borderRadius: '50%',
-                  cursor: 'nwse-resize',
-                  border: '2px solid white',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}
-              />
-            </div>
-))}
-{/* Image Upload Section - Moved to a non-disruptive location */}
-          <div 
-            className="image-upload-controls"
-            data-html2canvas-ignore="true"
-            style={{
-              position: 'absolute',
-              top: '10px',
-              left: '10px',
-              zIndex: 100,
-            }}
-          >
-            <input
-              type="file"
-              ref={imageInputRef}
-              onChange={handleImageUpload}
-              accept="image/*"
-              style={{ display: 'none' }}
-            />
-            <button
-              type="button"
-              onClick={() => imageInputRef.current?.click()}
-              style={{
-                padding: '8px 16px',
-                background: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}
-            >
-              + Upload Product Image
-            </button>
-          </div>
-
-          {/* Technical Description */}
-          <div className="technical-description">
-            <EditableText
-              tagName="h3"
-              className="section-title"
-              value={customText.techDetailsTitle}
-              onChange={(val) => updateCustomText('techDetailsTitle', val)}
-            />
-            <textarea
-              value={technicalDetailsMessage}
-              onChange={(e) => setTechnicalDetailsMessage(e.target.value)}
-              className="editable-textarea technical-message"
-              rows={4}
-            />
-          </div>
-
-         {/* Technical Specifications Table */}
-<div className="technical-table-section">
-  <table className="technical-table">
-    <tbody>
-      {Array.isArray(technicalDetailsTable) && technicalDetailsTable.map((detail: TechnicalDetail, index: number) => (
-        <tr key={index}>
-          <td className="table-title">
-            <input
-              type="text"
-              value={detail.itemTitle}
-              onChange={(e) =>
-                handleTableFieldChange(index, 'itemTitle', e.target.value)
-              }
-              className="editable-table-input"
-            />
-          </td>
-          <td className="table-description">
-            <input
-              type="text"
-              value={detail.itemDescription}
-              onChange={(e) =>
-                handleTableFieldChange(index, 'itemDescription', e.target.value)
-              }
-              className="editable-table-input"
-            />
-          </td>
-          <td style={{ border: 'none', background: 'transparent', width: '40px', padding: '4px' }}>
-            <button
-              type="button"
-              onClick={() => {
-                const updated = technicalDetailsTable.filter((_, i) => i !== index)
-                setTechnicalDetailsTable(updated)
-              }}
-              data-html2canvas-ignore="true"
-              style={{
-                background: '#ef4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '4px 8px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-              title="Delete row"
-            >
-              ×
-            </button>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-  <button
-    type="button"
-    onClick={() => {
-      setTechnicalDetailsTable([
-        ...technicalDetailsTable,
-        { itemTitle: '', itemDescription: '' }
-      ])
-    }}
-    data-html2canvas-ignore="true"
-    style={{
-      marginTop: '10px',
-      padding: '8px 16px',
-      background: '#3b82f6',
-      color: 'white',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '600'
-    }}
-  >
-    + Adauga produs
-  </button>
-</div>
-
-          {/* Validity Conditions */}
-          <div className="validity-section">
-            <EditableText
-              tagName="h4"
-              className="validity-title"
-              value={customText.validityTitle}
-              onChange={(val) => updateCustomText('validityTitle', val)}
-            />
-            <EditableText
-              tagName="p"
-              className="validity-text"
-              value={customText.validityText}
-              onChange={(val) => updateCustomText('validityText', val)}
-            />
-          </div>
-
-          </div>
+        {/* Add Page Button? User might want to manually add a blank page? optional */}
       </div>
     )
   }

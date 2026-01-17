@@ -25,6 +25,7 @@ export interface Product {
 export interface OfferContent {
   title: string
   subtitle: string
+  mainMessage?: string // Optional: Main message content for the offer
   technicalDetailsMessage: string
   technicalDetailsTable: TechnicalDetail[]
   productPrice: string
@@ -37,6 +38,7 @@ export interface OfferData {
   offerMetadata: OfferMetadata
   offerConent: OfferContent // Note: keeping the typo from the API response
   offerContent?: OfferContent // Optional: Support for correct spelling as fallback
+  subOffers?: OfferData[] // Optional: For consolidated offers from a single file
 }
 
 export interface WebhookResponseItem {

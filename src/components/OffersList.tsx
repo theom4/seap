@@ -3,7 +3,6 @@ import JSZip from 'jszip'
 import { OfferTemplate, type OfferTemplateRef } from '../OfferTemplate'
 import type { WebhookResponse } from '../types'
 import { getAllOffers, getOfferKey } from '../utils/webhookUtils'
-import { mergePDFs } from '../utils/pdfMerge'
 
 interface OffersListProps {
   webhookResponse: WebhookResponse
@@ -15,6 +14,7 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
   const templateRefs = useRef<(OfferTemplateRef | null)[]>([])
   const [isDownloadingAll, setIsDownloadingAll] = useState(false)
   const [activeOfferIndex, setActiveOfferIndex] = useState<number | null>(null)
+
 
   // Debug: Log offers with products
   console.log('OffersList: Total offers:', offers.length)
@@ -57,7 +57,6 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
     try {
       const zip = new JSZip()
       const errors: string[] = []
-      const pdfBlobs: Blob[] = []
 
       // Generate all PDFs sequentially and add them to ZIP
       for (let i = 0; i < templateRefs.current.length; i++) {
@@ -65,7 +64,6 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
         if (ref) {
           try {
             const pdfBlob = await ref.generatePDF()
-            pdfBlobs.push(pdfBlob)
             const offer = offers[i]
             const safeTitle = (offer.offerConent.title || 'offer')
               .replace(/[^a-z0-9]/gi, '_')
@@ -89,17 +87,6 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
       if (Object.keys(zip.files).length === 0) {
         alert('Nu s-au putut genera PDF-uri. Vă rugăm să încercați din nou.')
         return
-      }
-
-      // If multiple offers, also create and add merged PDF
-      if (pdfBlobs.length > 1) {
-        try {
-          const mergedPdfBlob = await mergePDFs(pdfBlobs)
-          zip.file('OFERTA_FINALA.pdf', mergedPdfBlob)
-        } catch (error) {
-          console.error('Error merging PDFs:', error)
-          errors.push('Eroare la unirea PDF-urilor')
-        }
       }
 
       // Generate ZIP file
@@ -127,6 +114,7 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
     }
   }
 
+
   return (
     <div className="relative">
       {/* Header and Controls */}
@@ -141,25 +129,27 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
         </div>
         <div className="flex items-center space-x-3">
           {offers.length > 1 && (
-            <button
-              onClick={handleDownloadAll}
-              disabled={isDownloadingAll}
-              className="px-4 py-2 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:cursor-not-allowed text-sm font-bold transition-colors shadow-sm flex items-center space-x-2"
-            >
-              {isDownloadingAll ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Se generează...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span>Descarcă Toate (.ZIP)</span>
-                </>
-              )}
-            </button>
+            <>
+              <button
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll}
+                className="px-4 py-2 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:cursor-not-allowed text-sm font-bold transition-colors shadow-sm flex items-center space-x-2"
+              >
+                {isDownloadingAll ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Se generează...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    <span>Descarcă Toate (.ZIP)</span>
+                  </>
+                )}
+              </button>
+            </>
           )}
           <button
             onClick={onClear}

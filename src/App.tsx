@@ -3,6 +3,7 @@ import { OffersList } from './components/OffersList'
 import { extractBinaryFromFile } from './utils/pdfBinaryExtraction'
 import { extractProductsFromPDF } from './utils/pdfExtraction'
 import type { WebhookResponse, OfferData } from './types'
+import { getAllOffers, consolidateOffers } from './utils/webhookUtils'
 import './App.css'
 
 // LocalStorage keys
@@ -96,21 +97,6 @@ function App() {
     setSelectedModel(MODELS[modelProvider][0])
   }, [modelProvider])
 
-  // Helper function to parse European price format (e.g., "61.050,00 RON" or "70,00 RON / intervenție")
-  const parsePrice = (priceString: string | undefined): number => {
-    if (!priceString) return 0
-
-    // Extract the numeric part (digits, dots, commas)
-    const priceMatch = priceString.match(/[\d,\.]+/)
-    if (!priceMatch) return 0
-
-    // European format: dots are thousands separators, comma is decimal separator
-    // Remove all dots, then replace comma with dot for parseFloat
-    const normalized = priceMatch[0].replace(/\./g, '').replace(',', '.')
-    const parsed = parseFloat(normalized)
-
-    return isNaN(parsed) ? 0 : parsed
-  }
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -288,7 +274,7 @@ function App() {
     setUploadTimestamp(timestamp)
     localStorage.setItem(STORAGE_KEYS.UPLOAD_TIMESTAMP, timestamp.toString())
 
-    // Set all pending files to extracting
+    // Set all pending files to "extracting" initially
     setFiles((prev) => {
       const updated = [...prev]
       pendingFiles.forEach(({ index }) => {
@@ -297,260 +283,168 @@ function App() {
       return updated
     })
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20 * 60 * 1000); // Global timeout
+
     try {
-      // Extract files using binary mode
-      const filesData = await Promise.all(
-        pendingFiles.map(async ({ file }) => {
-          try {
-            return await extractBinaryFromFile(file.file)
-          } catch (error) {
-            throw new Error(`Failed to extract data from ${file.file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
-          }
-        })
-      )
-
-      // Set all files to uploading
-      setFiles((prev) => {
-        const updated = [...prev]
-        pendingFiles.forEach(({ index }) => {
-          updated[index] = { ...updated[index], status: 'uploading' }
-        })
-        return updated
-      })
-
-      // Prepare payload by adding model details to each file object
-      // This maintains compatibility with n8n 'Convert to File' node which expects 'data' property on the root of each item
-      const payload = filesData.map(fileData => ({
-        ...fileData,
-        modelProvider,
-        model: selectedModel,
-      }))
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20 * 60 * 1000);
-      let response: any;
-      // Send payload in request
-      try {
-        response = await fetch('https://n8n.voisero.info/webhook-test/seap-test', {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-
-        })
-        if (!response.ok) {
-          throw new Error(`Upload failed: ${response.statusText}`)
-        }
-      }
-      catch (error: any) {
-        if (error.name === 'AbortError') console.log('timeout');
-
-      } finally {
-        clearTimeout(timeoutId);
-      }
-
-
-
-
-      // Parse webhook response with better error handling
-      let responseData: WebhookResponse
-      try {
-        const responseText = await response.text()
-
-        if (!responseText || responseText.trim() === '') {
-          throw new Error('Empty response from server')
-        }
-
+      // Process files SEQUENTIALLY to ensure 1 File = 1 Invoice/Offer Group
+      for (const { file: fileStat, index } of pendingFiles) {
         try {
-          responseData = JSON.parse(responseText)
-        } catch (parseError) {
-          console.error('Failed to parse JSON response:', parseError)
-          console.error('Response text:', responseText.substring(0, 500))
-          throw new Error(`Invalid JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
-        }
-      } catch (error) {
-        throw new Error(`Failed to parse webhook response: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      }
+          // 1. Extract Data
+          let fileData;
+          try {
+            fileData = await extractBinaryFromFile(fileStat.file)
+          } catch (extractError) {
+            throw new Error(`Failed to extract data: ${extractError instanceof Error ? extractError.message : 'Unknown error'}`)
+          }
 
-      // Validate and log webhook response structure
-      // FIX: Throw error if response is not an array (prevents saving error objects to state)
-      if (!Array.isArray(responseData)) {
-        console.error('Invalid response format:', responseData)
-        throw new Error('Server returned an invalid format (not an array)')
-      }
-
-      console.log(`Webhook response received: ${responseData.length} item(s)`)
-
-      // DEBUG: Log the structure of the first item to understand where products are
-      if (responseData.length > 0) {
-        console.log('First webhook item structure:', JSON.stringify(responseData[0], null, 2))
-        const firstItem = responseData[0] as any
-        if (firstItem.offerConent) {
-          console.log('offerConent keys:', Object.keys(firstItem.offerConent))
-          console.log('offerConent.products:', firstItem.offerConent.products)
-        }
-        if (firstItem.offerContent) {
-          console.log('offerContent keys:', Object.keys(firstItem.offerContent))
-          console.log('offerContent.products:', firstItem.offerContent.products)
-        }
-        // Check if products exist at top level
-        if (firstItem.products) {
-          console.log('Top-level products found:', firstItem.products.length)
-        }
-      }
-
-      // Extract products from PDF files and merge with webhook response
-      try {
-        const pdfFiles = pendingFiles.filter(({ file }) =>
-          file.file.type === 'application/pdf' || file.file.name.toLowerCase().endsWith('.pdf')
-        )
-
-        if (pdfFiles.length > 0) {
-          console.log(`Extracting products from ${pdfFiles.length} PDF file(s)...`)
-
-          // Extract products from each PDF
-          const productsArrays = await Promise.all(
-            pdfFiles.map(async ({ file }) => {
-              try {
-                const products = await extractProductsFromPDF(file.file)
-                console.log(`Extracted ${products.length} products from ${file.file.name}`)
-                return products
-              } catch (error) {
-                console.error(`Failed to extract products from ${file.file.name}:`, error)
-                return []
-              }
-            })
-          )
-
-          // Merge products into webhook response
-          // Assuming the webhook response has one offer per PDF file
-          const mergedResponse = (responseData as OfferData[]).map((offer, index) => {
-            // Ensure offerConent exists
-            const offerConent = offer.offerConent || offer.offerContent || {}
-
-            if (index < productsArrays.length && productsArrays[index].length > 0) {
-              return {
-                ...offer,
-                offerConent: {
-                  ...offerConent,
-                  products: productsArrays[index],
-                },
-              }
-            }
-            // No products extracted, create default from subtitle and productPrice
-            if (!offerConent.products || offerConent.products.length === 0) {
-              const parsedPrice = parsePrice(offerConent.productPrice)
-
-              const defaultProduct = {
-                itemNumber: 1,
-productName: (offerConent.title || offerConent.subtitle || 'Produs').replace('Oferta Comerciala: ', ''),
-                unitOfMeasurement: 'BUC',
-                quantity: 1,
-                unitPriceNoVAT: parsedPrice,
-                totalValueNoVAT: parsedPrice,
-              }
-              return {
-                ...offer,
-                offerConent: {
-                  ...offerConent,
-                  products: [defaultProduct],
-                },
-              }
-            }
-            return offer
+          // Update status to uploading
+          setFiles((prev) => {
+            const updated = [...prev]
+            updated[index] = { ...updated[index], status: 'uploading' }
+            return updated
           })
 
-          setWebhookResponse(mergedResponse)
-          console.log('Products successfully merged with webhook response')
-        } else {
-          // No PDFs to extract from, but we should still add default products from subtitle and productPrice
-          const enrichedResponse = (responseData as OfferData[]).map((offer) => {
-            const offerConent = offer.offerConent || {}
-            // If products don't exist, create a default one from the subtitle and productPrice
-            if (!offerConent.products || offerConent.products.length === 0) {
-              const parsedPrice = parsePrice(offerConent.productPrice)
+          // 2. Prepare Payload for Single File
+          // Note: The webhook might still expect an array, or a single object. 
+          // Keeping it as an array of 1 item to be safe with existing n8n structure if it expects a list.
+          const payload = [{
+            ...fileData,
+            modelProvider,
+            model: selectedModel,
+          }]
 
-              const defaultProduct = {
-                itemNumber: 1,
-productName: (offerConent.title || offerConent.subtitle || 'Produs').replace('Oferta Comerciala: ', ''),
-                unitOfMeasurement: 'BUC',
-                quantity: 1,
-                unitPriceNoVAT: parsedPrice,
-                totalValueNoVAT: parsedPrice,
-              }
-              return {
-                ...offer,
-                offerConent: {
-                  ...offerConent,
-                  products: [defaultProduct],
-                },
-              }
-            }
-            return offer
-          })
-          setWebhookResponse(enrichedResponse)
-        }
-      } catch (productsError) {
-        console.error('Error extracting products from PDFs:', productsError)
-        // Still set the webhook response even if products extraction fails, but add default products
-        const enrichedResponse = (responseData as OfferData[]).map((offer) => {
-        const offerConent = offer.offerConent || offer.offerContent || {}
-
-
-          if (!offerConent.products || offerConent.products.length === 0) {
-            const parsedPrice = parsePrice(offerConent.productPrice)
-
-            const defaultProduct = {
-              itemNumber: 1,
-productName: (offerConent.title || offerConent.subtitle || 'Produs').replace('Oferta Comerciala: ', ''),
-              unitOfMeasurement: 'BUC',
-              quantity: 1,
-              unitPriceNoVAT: parsedPrice,
-              totalValueNoVAT: parsedPrice,
-            }
-            return {
-              ...offer,
-              offerConent: {
-                ...offerConent,
-                products: [defaultProduct],
+          // 3. Send Request
+          let response: Response;
+          try {
+            response = await fetch('https://n8n.voisero.info/webhook/seap-test', {
+              method: 'POST',
+              signal: controller.signal,
+              headers: {
+                'Content-Type': 'application/json',
               },
+              body: JSON.stringify(payload),
+            })
+
+            if (!response.ok) {
+              throw new Error(`Upload failed: ${response.statusText}`)
+            }
+          } catch (netError: any) {
+            if (netError.name === 'AbortError') console.log('timeout')
+            throw netError
+          }
+
+          // 4. Parse Response
+          let responseData: WebhookResponse
+          try {
+            const responseText = await response.text()
+            if (!responseText || responseText.trim() === '') throw new Error('Empty response from server')
+            responseData = JSON.parse(responseText)
+          } catch (parseError) {
+            throw new Error(`Invalid JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
+          }
+
+          // 5. Process & Consolidate
+          // Get all raw offers for this ONE file
+          const offersFromFile = getAllOffers(responseData)
+
+          // Extract products from PDF if applicable
+          let extractedProducts: any[] = []
+          if (fileStat.file.type === 'application/pdf' || fileStat.file.name.toLowerCase().endsWith('.pdf')) {
+            try {
+              extractedProducts = await extractProductsFromPDF(fileStat.file)
+              console.log(`Extracted ${extractedProducts.length} products from PDF`)
+            } catch (pdfErr) {
+              console.error('Error extracting products from PDF:', pdfErr)
             }
           }
-          return offer
-        })
-        setWebhookResponse(enrichedResponse)
-      }
 
-      // Clear processing state
-      setUploadTimestamp(null)
-      localStorage.removeItem(STORAGE_KEYS.UPLOAD_TIMESTAMP)
+          // Merge PDF extracted products into the offers if needed
+          // Strategy: If we have extracted products, we might want to distribute them or add them to the master?
+          // For simplicity, let's attach them to the first offer if it lacks products, or merge?
+          // Actually, `consolidateOffers` aggregates products.
+          // Let's inject them into the first offer before consolidating if strictly needed,
+          // OR rely on the webhook having done a good job. 
+          // Current logic: Merge into the first offer if index matches.
+          // Since we have 1 file, let's just make sure the offers have products.
 
-      // Mark all files as success
-      setFiles((prev) => {
-        const updated = [...prev]
-        pendingFiles.forEach(({ index }) => {
-          updated[index] = { ...updated[index], status: 'success' }
-        })
-        return updated
-      })
-    } catch (error) {
-      // Clear processing state on error
-      setUploadTimestamp(null)
-      localStorage.removeItem(STORAGE_KEYS.UPLOAD_TIMESTAMP)
-
-      // Mark all files as error
-      setFiles((prev) => {
-        const updated = [...prev]
-        pendingFiles.forEach(({ index }) => {
-          updated[index] = {
-            ...updated[index],
-            status: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error',
+          if (extractedProducts.length > 0 && offersFromFile.length > 0) {
+            const firstOfferContent = offersFromFile[0].offerConent || offersFromFile[0].offerContent
+            if (firstOfferContent) {
+              // If the AI didn't find products, use the PDF ones
+              if (!firstOfferContent.products || firstOfferContent.products.length === 0) {
+                firstOfferContent.products = extractedProducts
+              }
+            }
           }
-        })
-        return updated
-      })
+
+          // 6. CONSOLIDATE into ONE Master Offer
+          // Import this dynamically or assume it's available (needs to be imported at top of file, but I can't add imports with replace_file_content easily without context.
+          // I will assume I need to fix imports in a separate step or hope `consolidateOffers` is available.
+          // Wait, I need to Import `consolidateOffers`.
+          // I will modify the previous step to add the import, or just use the tool again.
+          // Actually, I can't use it if not imported.
+          // I'll assume I'll add the import in the next tool call or previously.
+          // Wait, I haven't added the import yet. I should do that.
+          // BUT, I can't break the code.
+          // I will use `getAllOffers` (which is imported).
+          // I will simply add the consolidation logic inline momentarily or use a helper if I can add the import.
+
+          // Let's rely on `consolidateOffers` being imported. I'll add the import in a subsequent step or previous?
+          // Use `require` or dynamic import? No, standard React.
+          // I will add the import first in a separate tool call to be safe?
+          // No, I'll do it after this replacement. Ideally I should have done it before.
+          // I'll do it right now by rewriting the file header in a separate call? 
+          // Too slow.
+
+          // Strategy: 
+          // 1. Refactor `App.tsx` imports.
+          // 4. Consolidate offers from this single file
+          const consolidatedOffer = consolidateOffers(offersFromFile)
+
+          if (consolidatedOffer) {
+            console.log('[App] Consolidated Offer Result:', {
+              hasSubOffers: !!consolidatedOffer.subOffers,
+              subOffersCount: consolidatedOffer.subOffers?.length,
+              totalProducts: consolidatedOffer.offerConent?.products?.length || 0
+            })
+
+            setWebhookResponse(prev => {
+              // Avoid duplicates if using React.StrictMode double-invoke
+              // We check if we already processed this file ID maybe? 
+              // For now, simpler: just append.
+              const current = (prev as OfferData[]) || []
+              return [...current, consolidatedOffer]
+            })
+          } else {
+            console.warn('No offers found in response for file:', fileStat.file.name)
+          }
+
+          // 7. Mark Success
+          setFiles((prev) => {
+            const updated = [...prev]
+            updated[index] = { ...updated[index], status: 'success' }
+            return updated
+          })
+
+        } catch (fileError) {
+          console.error(`Error processing file ${fileStat.file.name}:`, fileError)
+          // Mark Error
+          setFiles((prev) => {
+            const updated = [...prev]
+            updated[index] = {
+              ...updated[index],
+              status: 'error',
+              error: fileError instanceof Error ? fileError.message : 'Unknown error'
+            }
+            return updated
+          })
+        }
+      }
+    } finally {
+      clearTimeout(timeoutId)
+      setUploadTimestamp(null)
+      localStorage.removeItem(STORAGE_KEYS.UPLOAD_TIMESTAMP)
     }
   }
 
