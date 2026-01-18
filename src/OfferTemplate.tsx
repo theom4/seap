@@ -137,7 +137,7 @@ function getProductsTableHTML(products: Product[]) {
 function getAnnexHTML() {
   return `
     <div style="font-family: Arial, sans-serif; color: #000; line-height: 1.6; font-size: 11pt; background: white; padding: 15mm 10mm;">
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 20px; text-align: center;">
         <strong>S.C. AS GREEN LAND S.R.L</strong><br/>
         Sediu social - Str.Lalelelor 12 Comuna Nuci Sat Merii Petchii, Ilfov,<br/>
         CUI: RO 46581890 Registrul Comertului :J2022005182231<br/>
@@ -830,19 +830,120 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement
               if (clonedTemplate) {
                 clonedTemplate.style.overflow = 'visible'
-                const textareas = clonedTemplate.querySelectorAll('textarea')
-                textareas.forEach(textarea => {
+                // CHANGE: Select ALL textareas in the document to handle multi-page/consolidated views
+                const textareas = clonedDoc.querySelectorAll('textarea')
+                console.log('[PDF] Found', textareas.length, 'textareas to replace')
+
+                textareas.forEach((textarea, idx) => {
                   const div = clonedDoc.createElement('div')
                   div.textContent = textarea.value
                   const style = window.getComputedStyle(textarea)
+
+                  console.log(`[PDF] Textarea ${idx} original border:`, style.border)
+                  console.log(`[PDF] Textarea ${idx} original outline:`, style.outline)
+
+                  // Copy all computed styles EXCEPT border/outline/appearance properties
+                  // Border properties are excluded because textarea has a dashed border for editor UI
+                  const skippedProps: string[] = []
                   Array.from(style).forEach(key => {
+                    // Skip all border-related, outline-related, and appearance-related properties
+                    if (
+                      key.startsWith('border') ||
+                      key.startsWith('outline') ||
+                      key.startsWith('text-decoration') || // Check for text-decoration-line (underlines, etc)
+                      key === 'box-shadow' ||
+                      key === 'appearance' ||
+                      key === '-webkit-appearance' ||
+                      key === 'background-image' // Ensure no background patterns
+                    ) {
+                      skippedProps.push(key)
+                      return
+                    }
                     div.style.setProperty(key, style.getPropertyValue(key), style.getPropertyPriority(key))
                   })
-                  div.style.height = 'auto'
-                  div.style.minHeight = style.height
+                  // Concise logging
+                  console.log(`[PDF] Textarea ${idx} skipped ${skippedProps.length} props including:`, skippedProps.slice(0, 5))
+
+                  // CRITICAL: Use scrollHeight to get actual content height
+                  // This ensures content is not cut off or shifted
+                  const actualHeight = Math.max(textarea.scrollHeight, parseInt(style.height) || 0)
+                  div.style.height = `${actualHeight}px`
+                  div.style.minHeight = `${actualHeight}px`
+                  // Do NOT set maxHeight - let content flow naturally
+
                   div.style.whiteSpace = 'pre-wrap'
+                  div.style.wordWrap = 'break-word'
+                  div.style.overflow = 'visible' // Match textarea overflow behavior
+                  div.style.boxSizing = 'border-box' // Ensure consistent box model
+
+                  // Ensure no borders/outlines appear in PDF
+                  // Note: !important doesn't work in inline styles, use explicit values
+                  div.style.border = '0px solid transparent'
+                  div.style.borderStyle = 'none'
+                  div.style.borderWidth = '0px'
+                  div.style.borderColor = 'transparent'
+
+                  div.style.outline = '0px solid transparent'
+                  div.style.outlineStyle = 'none'
+                  div.style.outlineWidth = '0px'
+
+                  div.style.boxShadow = 'none'
+                  div.style.backgroundImage = 'none' // Remove any background images
+                  div.style.background = 'transparent' // Clear shorthand background
+                  div.style.backgroundColor = 'transparent' // Ensure transparency unless needed
+
+                  // Reset appearance to prevent native controls styling
+                  div.style.appearance = 'none'
+                  div.style.setProperty('-webkit-appearance', 'none')
+
+                  // Force background to white (or matching background) just in case
+                  // div.style.backgroundColor = style.backgroundColor || '#ffffff' 
+
+                  // Debug pseudo-elements
+                  const beforeStyle = window.getComputedStyle(textarea, '::before')
+                  const afterStyle = window.getComputedStyle(textarea, '::after')
+                  if (beforeStyle.content !== 'none' || afterStyle.content !== 'none') {
+                    console.log(`[PDF] WARN: Textarea has pseudo-elements! Before: ${beforeStyle.content}, After: ${afterStyle.content}`)
+                  }
+
+                  // Remove any classes that might have border styles
+                  div.className = ''
+
                   textarea.parentNode?.replaceChild(div, textarea)
+
+                  // Force reflow to ensure styles are applied
+                  void div.offsetHeight
+
+                  const finalBorder = clonedDoc.defaultView?.getComputedStyle(div).border || 'unknown'
+                  const finalOutline = clonedDoc.defaultView?.getComputedStyle(div).outline || 'unknown'
+                  console.log(`[PDF] Textarea ${idx} FINAL border:`, finalBorder, 'outline:', finalOutline)
+                  console.log(`[PDF] Textarea ${idx} inline style.border:`, div.style.border)
+
+                  // COMPREHENSIVE DEBUGGING - Check parent elements for borders
+                  const parent = div.parentElement
+                  if (parent) {
+                    const parentStyle = clonedDoc.defaultView?.getComputedStyle(parent)
+                    console.log(`[PDF] Parent element:`, parent.tagName, 'class:', parent.className)
+                    console.log(`[PDF] Parent border:`, parentStyle?.border)
+                    console.log(`[PDF] Parent outline:`, parentStyle?.outline)
+
+                    const grandparent = parent.parentElement
+                    if (grandparent) {
+                      const gpStyle = clonedDoc.defaultView?.getComputedStyle(grandparent)
+                      console.log(`[PDF] Grandparent element:`, grandparent.tagName, 'class:', grandparent.className)
+                      console.log(`[PDF] Grandparent border:`, gpStyle?.border)
+                    }
+                  }
+
+                  // Log the div's actual HTML structure
+                  console.log(`[PDF] Div outerHTML (first 300 chars):`, div.outerHTML.substring(0, 300))
+                  console.log(`[PDF] Div background:`, clonedDoc.defaultView?.getComputedStyle(div).background)
+                  console.log(`[PDF] Div padding:`, clonedDoc.defaultView?.getComputedStyle(div).padding)
                 })
+
+                // Force reflow on the entire template
+                void clonedTemplate.offsetHeight
+                console.log('[PDF] DOM replacement complete, ready for capture')
               }
             }
           })
@@ -1057,6 +1158,16 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               </table>
               <div style={{ marginTop: '10px', textAlign: 'right' }}>
                 <button
+                  onClick={() => {
+                    if (products.length > 0) {
+                      setProducts(products.slice(0, -1))
+                    }
+                  }}
+                  style={{ marginRight: '10px', padding: '6px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  Sterge ultimul rand
+                </button>
+                <button
                   onClick={() => setProducts([...products, { itemNumber: products.length + 1, productName: 'Produs Nou', unitOfMeasurement: 'BUC', quantity: 1, unitPriceNoVAT: 0, totalValueNoVAT: 0 }])}
                   style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
                 >
@@ -1075,25 +1186,42 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               </button>
             </div>
           )}
+
+
+          <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', paddingTop: '10mm', alignItems: 'flex-end', padding: '0 20px 20px 20px' }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: '0 0 6px 0', fontSize: '11pt', color: '#000' }}><strong style={{ color: '#000' }}>OFERTANTUL</strong></p>
+              <p style={{ margin: '0 0 3px 0', fontSize: '11pt', color: '#000' }}><strong style={{ color: '#000' }}>S.C. AS GREEN LAND S.R.L</strong></p>
+              <p style={{ margin: 0, fontSize: '10pt', fontStyle: 'italic', color: '#000' }}>(denumirea/numele)</p>
+            </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              <p style={{ margin: '0 0 3px 0', fontSize: '10pt', color: '#000' }}>Preturile Nu Contin TVA</p>
+              <p style={{ margin: '0 0 3px 0', fontSize: '10pt', color: '#000' }}>Transportul este inclus in pret</p>
+              <p style={{ margin: '0 0 3px 0', fontSize: '10pt', color: '#000' }}>Plata prin cont de Trezorerie</p>
+              <p style={{ margin: 0, fontSize: '10pt', color: '#000' }}>Termen de plata stabilt la semnarea contractului</p>
+            </div>
+          </div>
         </div>
 
         {/* 3. Render Pages */}
-        {pages.map((page, i) => (
-          <ProductPage
-            key={page.id}
-            index={i}
-            ref={el => { pageRefs.current[i] = el }}
-            content={page}
-            onChange={(newContent) => handlePageUpdate(i, newContent)}
-            onDelete={handlePageDelete}
-            themeColors={themeColors}
-            customText={customText}
-            updateCustomText={updateCustomText}
-          />
-        ))}
+        {
+          pages.map((page, i) => (
+            <ProductPage
+              key={page.id}
+              index={i}
+              ref={el => { pageRefs.current[i] = el }}
+              content={page}
+              onChange={(newContent) => handlePageUpdate(i, newContent)}
+              onDelete={handlePageDelete}
+              themeColors={themeColors}
+              customText={customText}
+              updateCustomText={updateCustomText}
+            />
+          ))
+        }
 
         {/* Add Page Button? User might want to manually add a blank page? optional */}
-      </div>
+      </div >
     )
   }
 )

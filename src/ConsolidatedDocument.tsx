@@ -183,7 +183,7 @@ export const ConsolidatedDocument = forwardRef<ConsolidatedDocumentRef, Consolid
                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                         }}
                     >
-                        <div style={{ marginBottom: '20px' }}>
+                        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
                             <strong>S.C. AS GREEN LAND S.R.L</strong><br />
                             Sediu social - Str.Lalelelor 12 Comuna Nuci Sat Merii Petchii, Ilfov,<br />
                             CUI: RO 46581890 Registrul Comertului :J2022005182231<br />
