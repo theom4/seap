@@ -197,6 +197,16 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
       {offers.map((offer, index) => {
         const isActive = activeOfferIndex === index
 
+        // Log imageUrls for debugging
+        if (isActive && offer.offerMetadata.imageUrls) {
+          console.log('[OffersList] Active Offer Image URLs:', {
+            offerIndex: index,
+            offerTitle: offer.offerConent.title,
+            rawImageUrls: offer.offerMetadata.imageUrls,
+            imageCount: offer.offerMetadata.imageUrls.split(',').length
+          })
+        }
+
         // Base container styles
         const containerClasses = isActive
           ? "fixed inset-0 z-50 bg-black/60 flex justify-center overflow-y-auto py-8 backdrop-blur-sm"

@@ -6,6 +6,7 @@ export interface OfferMetadata {
   offerReference: string
   offerDate: string
   productWebPage: string
+  imageUrls?: string // Comma-separated URLs
 }
 
 export interface TechnicalDetail {

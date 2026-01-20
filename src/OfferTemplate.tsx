@@ -415,9 +415,15 @@ const ProductPage = forwardRef<HTMLDivElement, ProductPageProps>(({
               src={image.src}
               alt="Product"
               draggable="false"
-              crossOrigin="anonymous"
               className="draggable-product-image"
               style={{ width: '100%', height: 'auto', display: 'block' }}
+              onLoad={() => {
+                console.log('[ProductPage] Image loaded successfully:', image.src)
+              }}
+              onError={(e) => {
+                console.error('[ProductPage] Image failed to load:', image.src)
+                console.error('[ProductPage] Error details:', e)
+              }}
             />
             <button
               type="button"
@@ -588,23 +594,61 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [pages, setPages] = useState<OfferPageContent[]>(() => {
       console.log('[OfferTemplate] Init State. SubOffers:', offerData.subOffers?.length)
 
+      // Parse imageUrls from metadata
+      const imageUrlsFromMetadata = initialMetadata.imageUrls
+        ? initialMetadata.imageUrls.split(',').map((url: string) => url.trim()).filter((url: string) => url.length > 0)
+        : []
+
+      console.log('[OfferTemplate] ImageUrls from metadata:', {
+        raw: initialMetadata.imageUrls,
+        parsed: imageUrlsFromMetadata,
+        count: imageUrlsFromMetadata.length
+      })
+
       if (offerData.subOffers && offerData.subOffers.length > 0) {
         // Map sub-offers to pages
         return offerData.subOffers.map((subOffer, index) => {
           const content = subOffer.offerConent || subOffer.offerContent
+          const isLastPage = index === offerData.subOffers!.length - 1
+
+          // Build product images array
+          const productImages: PageImage[] = []
+          let imageId = 1
+
+          // Add productImageUrl if exists (on all pages)
+          if (content.productImageUrl) {
+            productImages.push({
+              id: `img-${index}-${imageId++}`,
+              src: content.productImageUrl,
+              pos: { x: 20, y: 180 },
+              size: { width: 150 }
+            })
+          }
+
+          // Add images from imageUrls metadata ONLY ON LAST PAGE
+          if (isLastPage && imageUrlsFromMetadata.length > 0) {
+            imageUrlsFromMetadata.forEach((url: string, imgIndex: number) => {
+              productImages.push({
+                id: `img-${index}-${imageId++}`,
+                src: url,
+                pos: {
+                  x: 50 + (imgIndex % 2) * 350, // 2 columns with more space
+                  y: 400 + Math.floor(imgIndex / 2) * 250 // More vertical space
+                },
+                size: { width: 300 } // Larger images
+              })
+            })
+            console.log(`[OfferTemplate] Last page (${index}) initialized with ${productImages.length} images (${imageUrlsFromMetadata.length} from metadata)`)
+          }
+
           return {
             id: `page-${index}-${Date.now()}`,
             title: content.title || 'Ofertă',
             subtitle: content.subtitle || '',
             technicalDetailsMessage: content.technicalDetailsMessage || '',
             technicalDetailsTable: content.technicalDetailsTable || [],
-            productImages: content.productImageUrl ? [{
-              id: `img-${index}`,
-              src: content.productImageUrl,
-              pos: { x: 20, y: 180 }, // Default position
-              size: { width: 150 }
-            }] : [],
-            nextImageId: 1,
+            productImages,
+            nextImageId: imageId,
             type: 'product' // Default type
           }
         })
@@ -613,19 +657,45 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       // Fallback: Use the main offer data as a single page
       console.log('[OfferTemplate] No subOffers found, using main content')
       const content = initialContent
+
+      // Build product images array
+      const productImages: PageImage[] = []
+      let imageId = 1
+
+      // Add productImageUrl if exists
+      if (content.productImageUrl) {
+        productImages.push({
+          id: `img-main-${imageId++}`,
+          src: content.productImageUrl,
+          pos: { x: 20, y: 180 },
+          size: { width: 150 }
+        })
+      }
+
+      // Add images from imageUrls metadata (single page so add them here)
+      if (imageUrlsFromMetadata.length > 0) {
+        imageUrlsFromMetadata.forEach((url: string, imgIndex: number) => {
+          productImages.push({
+            id: `img-main-${imageId++}`,
+            src: url,
+            pos: {
+              x: 50 + (imgIndex % 2) * 350, // 2 columns with more space
+              y: 400 + Math.floor(imgIndex / 2) * 250 // More vertical space
+            },
+            size: { width: 300 } // Larger images
+          })
+        })
+        console.log(`[OfferTemplate] Main page initialized with ${productImages.length} images (${imageUrlsFromMetadata.length} from metadata)`)
+      }
+
       return [{
         id: `page-main-${Date.now()}`,
         title: content.title || 'Ofertă',
         subtitle: content.subtitle || '',
         technicalDetailsMessage: content.technicalDetailsMessage || '',
         technicalDetailsTable: content.technicalDetailsTable || [],
-        productImages: content.productImageUrl ? [{
-          id: 'img-main',
-          src: content.productImageUrl,
-          pos: { x: 20, y: 180 },
-          size: { width: 150 }
-        }] : [],
-        nextImageId: 1,
+        productImages,
+        nextImageId: imageId,
         type: 'product'
       }]
     })
