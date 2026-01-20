@@ -76,6 +76,10 @@ const MODELS = {
     'gemini-3-flash-preview',
     'gemini-3-pro-preview',
   ],
+  grok: [
+    'grok-4',
+    'grok-4-fast',
+  ],
 }
 
 type ModelProvider = keyof typeof MODELS
@@ -89,6 +93,7 @@ function App() {
   // Model Selection State
   const [modelProvider, setModelProvider] = useState<ModelProvider>('openai')
   const [selectedModel, setSelectedModel] = useState<string>(MODELS.openai[0])
+  const [includeImages, setIncludeImages] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -312,12 +317,13 @@ function App() {
             ...fileData,
             modelProvider,
             model: selectedModel,
+            includeImages,
           }]
 
           // 3. Send Request
           let response: Response;
           try {
-            response = await fetch('https://n8n.voisero.info/webhook/seap-test', {
+            response = await fetch('https://n8n.voisero.info/webhook-test/seap-test', {
               method: 'POST',
               signal: controller.signal,
               headers: {
@@ -517,6 +523,15 @@ function App() {
                 >
                   Gemini
                 </button>
+                <button
+                  onClick={() => setModelProvider('grok')}
+                  className={`flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200 ${modelProvider === 'grok'
+                    ? 'bg-primary text-back shadow-sm'
+                    : 'text-text-muted hover:text-text-main'
+                    }`}
+                >
+                  Grok
+                </button>
               </div>
 
               {/* Model Dropdown */}
@@ -542,6 +557,21 @@ function App() {
                     </svg>
                   </div>
                 </div>
+              </div>
+
+              {/* Include Images Switch */}
+              <div className="flex items-center justify-between p-2.5 bg-surface border border-border rounded-lg">
+                <span className="text-sm font-medium text-text-main">Adauga imagini produs</span>
+                <button
+                  onClick={() => setIncludeImages(!includeImages)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${includeImages ? 'bg-primary' : 'bg-gray-200'
+                    }`}
+                >
+                  <span
+                    className={`${includeImages ? 'translate-x-6' : 'translate-x-1'
+                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                  />
+                </button>
               </div>
             </div>
 
