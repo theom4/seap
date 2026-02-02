@@ -3,6 +3,7 @@ import JSZip from 'jszip'
 import { OfferTemplate, type OfferTemplateRef } from '../OfferTemplate'
 import type { WebhookResponse } from '../types'
 import { getAllOffers, getOfferKey } from '../utils/webhookUtils'
+import { parseImageUrls } from '../utils/imageUrlParser'
 
 interface OffersListProps {
   webhookResponse: WebhookResponse
@@ -199,11 +200,15 @@ export function OffersList({ webhookResponse, onClear }: OffersListProps) {
 
         // Log imageUrls for debugging
         if (isActive && offer.offerMetadata.imageUrls) {
+          const parsedImageUrls = parseImageUrls(offer.offerMetadata.imageUrls)
           console.log('[OffersList] Active Offer Image URLs:', {
             offerIndex: index,
             offerTitle: offer.offerConent.title,
             rawImageUrls: offer.offerMetadata.imageUrls,
-            imageCount: offer.offerMetadata.imageUrls.split(',').length
+            rawType: typeof offer.offerMetadata.imageUrls,
+            isArray: Array.isArray(offer.offerMetadata.imageUrls),
+            parsedImageUrls: parsedImageUrls,
+            imageCount: parsedImageUrls.length
           })
         }
 

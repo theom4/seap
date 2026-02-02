@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import type { OfferData, Product, TechnicalDetail } from './types'
 import { EditableText } from './components/EditableText'
+import { parseImageUrls } from './utils/imageUrlParser'
 import './OfferTemplate.css'
 
 interface OfferTemplateProps {
@@ -594,13 +595,13 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [pages, setPages] = useState<OfferPageContent[]>(() => {
       console.log('[OfferTemplate] Init State. SubOffers:', offerData.subOffers?.length)
 
-      // Parse imageUrls from metadata
-      const imageUrlsFromMetadata = initialMetadata.imageUrls
-        ? initialMetadata.imageUrls.split(',').map((url: string) => url.trim()).filter((url: string) => url.length > 0)
-        : []
+      // Parse imageUrls from metadata using robust parser
+      const imageUrlsFromMetadata = parseImageUrls(initialMetadata.imageUrls)
 
       console.log('[OfferTemplate] ImageUrls from metadata:', {
         raw: initialMetadata.imageUrls,
+        rawType: typeof initialMetadata.imageUrls,
+        isArray: Array.isArray(initialMetadata.imageUrls),
         parsed: imageUrlsFromMetadata,
         count: imageUrlsFromMetadata.length
       })
