@@ -111,8 +111,26 @@ function normalizeOffer(rawOffer: unknown, context: string): OfferData | null {
     normalizedContent.productImageUrl = rawContent.imageUrl
   }
 
-  // Normalize offerDate to YYYY-MM-DD if it exists and is an ISO string
+  // Initialize metadata early so we can add imageUrls to it
   const metadata = { ...anyOffer.offerMetadata }
+
+  // Extract imageUrl from content and add to metadata as imageUrls
+  // imageUrl can be a string or array of strings
+  if (rawContent.imageUrl) {
+    const imageUrls = Array.isArray(rawContent.imageUrl)
+      ? rawContent.imageUrl.filter((url: any) => typeof url === 'string' && url.trim())
+      : typeof rawContent.imageUrl === 'string' && rawContent.imageUrl.trim()
+        ? [rawContent.imageUrl.trim()]
+        : []
+
+    if (imageUrls.length > 0) {
+      // Store as JSON string for compatibility with existing parsing logic
+      metadata.imageUrls = JSON.stringify(imageUrls)
+      console.log(`[normalizeOffer] Extracted ${imageUrls.length} image URLs to metadata:`, imageUrls)
+    }
+  }
+
+  // Normalize offerDate to YYYY-MM-DD if it exists and is an ISO string
   if (metadata.offerDate && typeof metadata.offerDate === 'string') {
     // Check if it looks like an ISO date (contains 'T')
     if (metadata.offerDate.includes('T')) {
@@ -161,10 +179,31 @@ export function getAllOffers(webhookResponse: WebhookResponse | null): OfferData
 
   const offers: OfferData[] = []
 
-  // Check if this is a direct array of OfferData (new format)
+  // Check if this is the NEW format with offers array: [{ offers: [...] }]
   if (webhookResponse.length > 0) {
-    const firstItem = webhookResponse[0]
-    // We pass a context string for logging
+    const firstItem: any = webhookResponse[0]
+
+    // NEW FORMAT: Check if first item has 'offers' array
+    if (firstItem && Array.isArray(firstItem.offers)) {
+      console.log('[getAllOffers] Detected NEW format with offers array')
+
+      webhookResponse.forEach((wrapper: any, wrapperIndex) => {
+        if (wrapper && Array.isArray(wrapper.offers)) {
+          wrapper.offers.forEach((offer: any, offerIndex: number) => {
+            const normalized = normalizeOffer(offer, `offers[wrapper ${wrapperIndex}, offer ${offerIndex}]`)
+            if (normalized) {
+              offers.push(normalized)
+            } else {
+              console.warn(`Invalid offer structure at wrapper ${wrapperIndex}, offer ${offerIndex}`)
+            }
+          })
+        }
+      })
+
+      return offers
+    }
+
+    // Check if this is a direct array of OfferData (previous new format)
     const normalizedFirst = normalizeOffer(firstItem, 'direct[0]')
 
     // Check if first item looks like an OfferData (has offerMetadata and content)

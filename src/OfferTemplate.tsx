@@ -610,7 +610,16 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         // Map sub-offers to pages
         return offerData.subOffers.map((subOffer, index) => {
           const content = subOffer.offerConent || subOffer.offerContent
-          const isLastPage = index === offerData.subOffers!.length - 1
+          const subOfferMetadata = subOffer.offerMetadata || {}
+
+          // Parse imageUrls from THIS subOffer's metadata (not parent)
+          const subOfferImageUrls = parseImageUrls(subOfferMetadata.imageUrls)
+
+          console.log(`[OfferTemplate] SubOffer ${index} image URLs:`, {
+            raw: subOfferMetadata.imageUrls,
+            parsed: subOfferImageUrls,
+            count: subOfferImageUrls.length
+          })
 
           // Build product images array
           const productImages: PageImage[] = []
@@ -626,9 +635,9 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             })
           }
 
-          // Add images from imageUrls metadata ONLY ON LAST PAGE
-          if (isLastPage && imageUrlsFromMetadata.length > 0) {
-            imageUrlsFromMetadata.forEach((url: string, imgIndex: number) => {
+          // Add images from THIS subOffer's imageUrls metadata
+          if (subOfferImageUrls.length > 0) {
+            subOfferImageUrls.forEach((url: string, imgIndex: number) => {
               productImages.push({
                 id: `img-${index}-${imageId++}`,
                 src: url,
@@ -639,7 +648,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
                 size: { width: 300 } // Larger images
               })
             })
-            console.log(`[OfferTemplate] Last page (${index}) initialized with ${productImages.length} images (${imageUrlsFromMetadata.length} from metadata)`)
+            console.log(`[OfferTemplate] Page ${index} initialized with ${productImages.length} total images (${subOfferImageUrls.length} from subOffer metadata)`)
           }
 
           return {
