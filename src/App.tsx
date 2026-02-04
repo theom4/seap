@@ -15,7 +15,7 @@ const STORAGE_KEYS = {
 }
 
 // Loading Animation Component
-function LoadingAnimation() {
+function LoadingAnimation({ elapsedSeconds }: { elapsedSeconds: number }) {
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[500px]">
       <div className="relative w-32 h-32 mb-8">
@@ -30,6 +30,17 @@ function LoadingAnimation() {
       <div className="text-center space-y-2">
         <h3 className="text-xl font-semibold text-gray-700">Procesare documente...</h3>
         <p className="text-md text-gray-500">Vă rugăm să nu inchideti fereastra browserului până când procesarea este completă.</p>
+        {/* Timer Display */}
+        <div className="mt-4 mb-2">
+          <div className="inline-flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full border border-blue-200">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-lg font-mono font-semibold text-blue-700">
+              {elapsedSeconds}s
+            </span>
+          </div>
+        </div>
         <div className="flex justify-center space-x-1 mt-4">
           <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:0s]"></div>
           <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:0.2s]"></div>
@@ -89,11 +100,14 @@ function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [webhookResponse, setWebhookResponse] = useState<WebhookResponse | null>(null)
   const [uploadTimestamp, setUploadTimestamp] = useState<number | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   // Model Selection State
   const [modelProvider, setModelProvider] = useState<ModelProvider>('openai')
   const [selectedModel, setSelectedModel] = useState<string>(MODELS.openai[0])
   const [includeImages, setIncludeImages] = useState(false)
+  const [notifyOnCompletion, setNotifyOnCompletion] = useState(false)
+  const [optionalProductName, setOptionalProductName] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -318,7 +332,9 @@ function App() {
             modelProvider,
             model: selectedModel,
             includeImages,
+            optionalProductName: optionalProductName.trim() || undefined, // Only include if not empty
           }]
+
 
           // 3. Send Request
           let response: Response;
@@ -479,6 +495,73 @@ function App() {
   const isProcessing = files.some(f => f.status === 'extracting' || f.status === 'uploading')
   const hasFiles = files.length > 0
 
+  // Timer for loading animation - must be after isProcessing declaration
+  useEffect(() => {
+    if (!isProcessing || webhookResponse) {
+      setElapsedSeconds(0)
+      return
+    }
+
+    // Start timer
+    setElapsedSeconds(0)
+    const interval = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [isProcessing, webhookResponse])
+
+  // Play notification sound when webhook response is received
+  useEffect(() => {
+    if (webhookResponse && notifyOnCompletion) {
+      // Create and play a notification sound
+      const playNotificationSound = () => {
+        try {
+          // Create an audio context and oscillator for a pleasant notification sound
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+          const oscillator = audioContext.createOscillator()
+          const gainNode = audioContext.createGain()
+
+          oscillator.connect(gainNode)
+          gainNode.connect(audioContext.destination)
+
+          // Pleasant notification tone (two beeps)
+          oscillator.frequency.value = 800
+          oscillator.type = 'sine'
+
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
+
+          oscillator.start(audioContext.currentTime)
+          oscillator.stop(audioContext.currentTime + 0.2)
+
+          // Second beep
+          setTimeout(() => {
+            const oscillator2 = audioContext.createOscillator()
+            const gainNode2 = audioContext.createGain()
+
+            oscillator2.connect(gainNode2)
+            gainNode2.connect(audioContext.destination)
+
+            oscillator2.frequency.value = 1000
+            oscillator2.type = 'sine'
+
+            gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime)
+            gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
+
+            oscillator2.start(audioContext.currentTime)
+            oscillator2.stop(audioContext.currentTime + 0.2)
+          }, 250)
+        } catch (error) {
+          console.error('Failed to play notification sound:', error)
+        }
+      }
+
+      playNotificationSound()
+    }
+  }, [webhookResponse, notifyOnCompletion])
+
+
   return (
     <div className="min-h-screen bg-back text-text-main">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -572,6 +655,50 @@ function App() {
                       } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
                   />
                 </button>
+              </div>
+
+              {/* Notification Toggle */}
+              <div className="flex items-center justify-between p-2.5 bg-surface border border-border rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  <span className="text-sm font-medium text-text-main">Notificare cautare finalizata</span>
+                </div>
+                <button
+                  onClick={() => setNotifyOnCompletion(!notifyOnCompletion)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${notifyOnCompletion ? 'bg-primary' : 'bg-gray-200'
+                    }`}
+                >
+                  <span
+                    className={`${notifyOnCompletion ? 'translate-x-6' : 'translate-x-1'
+                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                  />
+                </button>
+              </div>
+
+              {/* Optional Product Name Input */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-text-muted block">
+                  Optional: Denumirea produsului
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={optionalProductName}
+                    onChange={(e) => setOptionalProductName(e.target.value)}
+                    placeholder="Ex: Laptop Dell Latitude 5520"
+                    className="w-full pl-10 pr-3 py-2.5 bg-surface border border-border rounded-lg text-sm text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  />
+                </div>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Folosit în cazul în care în caietul de sarcini nu apare denumirea. Denumirea fiind obligatorie pentru găsirea produsului corect.
+                </p>
               </div>
             </div>
 
@@ -702,7 +829,7 @@ function App() {
           <div className="bg-surface rounded-xl shadow-lg p-6 min-h-[600px]">
             {isProcessing && !webhookResponse ? (
               <div>
-                <LoadingAnimation />
+                <LoadingAnimation elapsedSeconds={elapsedSeconds} />
                 {uploadTimestamp && (
                   <div className="mt-6 text-center">
                     <p className="text-sm text-text-muted mb-2">

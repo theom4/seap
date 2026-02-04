@@ -1,6 +1,7 @@
-import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
+import React, { forwardRef, useState, useEffect, useRef, useImperativeHandle } from 'react'
+import jsPDF from 'jspdf'
+import { urlToBase64, isDataUrl } from './utils/imageUtils'
 import type { OfferData, Product, TechnicalDetail } from './types'
 import { EditableText } from './components/EditableText'
 import { parseImageUrls } from './utils/imageUrlParser'
@@ -815,6 +816,43 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     }
 
     // --- PDF GENERATION ---
+    /**
+     * Pre-convert all external images in a container to base64 data URLs
+     * This solves CORS issues with html2canvas
+     */
+    const convertImagesToBase64 = async (container: HTMLElement): Promise<void> => {
+      const images = container.querySelectorAll('img') as NodeListOf<HTMLImageElement>
+      console.log(`[PDF] Converting ${images.length} images to base64 to avoid CORS issues`)
+
+      const conversions = Array.from(images).map(async (img) => {
+        const originalSrc = img.src
+
+        // Skip if already a data URL
+        if (isDataUrl(originalSrc)) {
+          console.log(`[PDF] Image already base64: ${originalSrc.substring(0, 50)}...`)
+          return
+        }
+
+        try {
+          console.log(`[PDF] Converting image: ${originalSrc}`)
+          const base64 = await urlToBase64(originalSrc)
+
+          if (base64 && isDataUrl(base64)) {
+            img.src = base64
+            console.log(`[PDF] ✓ Successfully converted: ${originalSrc.substring(0, 60)}...`)
+          } else {
+            console.warn(`[PDF] ✗ Failed to convert (will try with CORS): ${originalSrc}`)
+          }
+        } catch (error) {
+          console.warn(`[PDF] ✗ Error converting image ${originalSrc}:`, error)
+          // Keep original src, html2canvas will try with CORS
+        }
+      })
+
+      await Promise.all(conversions)
+      console.log(`[PDF] Image conversion complete`)
+    }
+
     const generateFinalPDF = async (): Promise<Blob> => {
       try {
         const pdf = new jsPDF('p', 'mm', 'a4')
@@ -834,6 +872,9 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           document.body.appendChild(annexContainer)
 
           try {
+            // Convert images to base64 to avoid CORS issues
+            await convertImagesToBase64(annexContainer)
+
             const annexCanvas = await html2canvas(annexContainer, { scale: 2, logging: false, backgroundColor: '#ffffff' })
             const annexImgData = annexCanvas.toDataURL('image/jpeg', 0.95)
             pdf.addImage(annexImgData, 'JPEG', 0, 0, pdfWidth, (annexCanvas.height * pdfWidth) / annexCanvas.width)
@@ -858,6 +899,9 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           // Wait for render
           await new Promise(resolve => setTimeout(resolve, 500))
           productsContainer.style.visibility = 'visible'
+
+          // Convert images to base64 to avoid CORS issues
+          await convertImagesToBase64(productsContainer)
 
           const productsCanvas = await html2canvas(productsContainer, { scale: 2, logging: false, backgroundColor: '#ffffff', windowWidth: 297 * 3.78, windowHeight: 210 * 3.78 })
 
@@ -894,6 +938,9 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           // Force layout
           pageRef.style.overflow = 'hidden'
           await new Promise(resolve => setTimeout(resolve, 200)) // Slight delay for style application
+
+          // CRITICAL: Convert all images to base64 before capturing to avoid CORS issues
+          await convertImagesToBase64(pageRef)
 
           // Capture
           const canvas = await html2canvas(pageRef, {

@@ -1,42 +1,57 @@
 /**
  * Converts an image URL to base64 data URL.
  * Useful for handling CORS issues with html2canvas when rendering external images.
+ * Uses canvas-based approach for better reliability.
  * 
  * @param imageUrl - The URL of the image to convert
- * @returns Promise resolving to base64 data URL, or null if conversion fails
+ * @returns Promise resolving to base64 data URL, or original URL if conversion fails
  */
 export async function urlToBase64(imageUrl: string): Promise<string | null> {
-  try {
-    const response = await fetch(imageUrl, {
-      mode: 'cors',
-      credentials: 'omit',
-    })
-    
-    if (!response.ok) {
-      console.warn(`Failed to fetch image from ${imageUrl}: ${response.statusText}`)
-      return null
-    }
-    
-    const blob = await response.blob()
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result)
-        } else {
-          reject(new Error('Failed to convert blob to base64'))
+  return new Promise((resolve) => {
+    try {
+      const img = new Image()
+
+      // Set crossOrigin before src to enable CORS
+      img.crossOrigin = 'anonymous'
+
+      img.onload = () => {
+        try {
+          // Create canvas and draw image
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth || img.width
+          canvas.height = img.naturalHeight || img.height
+
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            console.warn(`Failed to get canvas context for ${imageUrl}`)
+            resolve(imageUrl) // Return original URL as fallback
+            return
+          }
+
+          // Draw image onto canvas
+          ctx.drawImage(img, 0, 0)
+
+          // Convert to data URL
+          const dataUrl = canvas.toDataURL('image/png')
+          resolve(dataUrl)
+        } catch (error) {
+          console.warn(`Canvas conversion failed for ${imageUrl}:`, error)
+          resolve(imageUrl) // Return original URL as fallback
         }
       }
-      reader.onerror = () => {
-        reject(new Error('Failed to read image blob'))
+
+      img.onerror = (error) => {
+        console.warn(`Failed to load image ${imageUrl}:`, error)
+        resolve(imageUrl) // Return original URL as fallback
       }
-      reader.readAsDataURL(blob)
-    })
-  } catch (error) {
-    console.warn(`Error converting image URL to base64: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    // If CORS fails, return the original URL - html2canvas might still work if server has proper CORS headers
-    return imageUrl
-  }
+
+      // Start loading
+      img.src = imageUrl
+    } catch (error) {
+      console.warn(`Error in urlToBase64 for ${imageUrl}:`, error)
+      resolve(imageUrl) // Return original URL as fallback
+    }
+  })
 }
 
 /**
