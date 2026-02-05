@@ -332,7 +332,7 @@ function App() {
             modelProvider,
             model: selectedModel,
             includeImages,
-            optionalProductName: optionalProductName.trim() || undefined, // Only include if not empty
+            optionalProductName: optionalProductName.trim(), // Always include, even if empty
           }]
 
 
