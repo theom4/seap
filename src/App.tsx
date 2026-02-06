@@ -1,3 +1,5 @@
+// SEAP Script - PDF Offer Generator
+// Updated: 2026-02-06
 import { useState, useRef, useEffect, type DragEvent } from 'react'
 import { OffersList } from './components/OffersList'
 import { extractBinaryFromFile } from './utils/pdfBinaryExtraction'
