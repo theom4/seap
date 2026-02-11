@@ -36,6 +36,12 @@ export interface OfferPageContent {
   technicalDetailsTable: TechnicalDetail[]
   productImages: PageImage[]
   nextImageId: number
+  sectionPositions?: { // Y positions for draggable sections
+    techDescription: number
+    techTable: number
+    validity: number
+  }
+  hiddenSections?: string[] // List of hidden section keys
 }
 
 // ... (getProductsTableHTML and getAnnexHTML remain same - skipped for brevity in replacement if not touched, but since I need to replace broadly to hit interfaces if I can't partial replace well)
@@ -231,12 +237,17 @@ const ProductPage = forwardRef<HTMLDivElement, ProductPageProps>(({
 }, ref) => {
   const imageInputRef = useRef<HTMLInputElement>(null)
 
-  // Local state for Drag & Drop
+  // Local state for Image Drag & Drop
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [resizeStart, setResizeStart] = useState({ x: 0, width: 0 })
   const [activeImageId, setActiveImageId] = useState<string | null>(null)
+
+  // Local state for Section Drag & Drop
+  const [activeSectionKey, setActiveSectionKey] = useState<string | null>(null)
+  const [sectionDragStartY, setSectionDragStartY] = useState(0)
+  const [sectionOriginalY, setSectionOriginalY] = useState(0)
 
   const handleMouseDown = (e: React.MouseEvent, imageId: string) => {
     if (!isResizing) {
@@ -328,6 +339,35 @@ const ProductPage = forwardRef<HTMLDivElement, ProductPageProps>(({
     }
   }
 
+  // --- SECTION DRAG HANDLERS ---
+  const handleSectionMouseDown = (e: React.MouseEvent, sectionKey: string) => {
+    e.preventDefault()
+    const positions = content.sectionPositions || { techDescription: 100, techTable: 450, validity: 900 }
+    setActiveSectionKey(sectionKey)
+    setSectionDragStartY(e.clientY)
+    setSectionOriginalY(positions[sectionKey as keyof typeof positions])
+  }
+
+  const handleSectionMouseMove = (e: React.MouseEvent) => {
+    if (!activeSectionKey) return
+    const deltaY = e.clientY - sectionDragStartY
+    const newY = sectionOriginalY + deltaY
+
+    // Update position
+    const positions = content.sectionPositions || { techDescription: 100, techTable: 450, validity: 900 }
+    onChange({
+      ...content,
+      sectionPositions: {
+        ...positions,
+        [activeSectionKey]: Math.max(0, newY) // Prevent negative Y
+      }
+    })
+  }
+
+  const handleSectionMouseUp = () => {
+    setActiveSectionKey(null)
+  }
+
   const handleTableFieldChange = (idx: number, field: 'itemTitle' | 'itemDescription', value: string) => {
     const updatedTable = [...content.technicalDetailsTable]
     updatedTable[idx] = { ...updatedTable[idx], [field]: value }
@@ -342,7 +382,7 @@ const ProductPage = forwardRef<HTMLDivElement, ProductPageProps>(({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        style={{ position: 'relative', minHeight: '297mm', backgroundColor: 'white', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}
+        style={{ position: 'relative', minHeight: '297mm', overflow: 'visible', backgroundColor: 'white', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}
       >
         {/* Page Delete Button */}
         {index > 0 && ( /* Prevent deleting the main page if desired, or allow it */
@@ -494,85 +534,233 @@ const ProductPage = forwardRef<HTMLDivElement, ProductPageProps>(({
             />
           </div>
         ) : (
-          /* PRODUCT PAGE LAYOUT (Standard) */
-          <>
-            {/* Technical Description */}
-            <div className="technical-description">
-              <EditableText
-                tagName="h3"
-                className="section-title"
-                value={customText.techDetailsTitle}
-                onChange={(val) => updateCustomText('techDetailsTitle', val)}
-              />
-              <textarea
-                value={content.technicalDetailsMessage}
-                onChange={(e) => onChange({ ...content, technicalDetailsMessage: e.target.value })}
-                className="editable-textarea technical-message"
-                rows={4}
-              />
-            </div>
+          /* PRODUCT PAGE LAYOUT (Standard) - Draggable Sections */
+          (() => {
+            const positions = content.sectionPositions || { techDescription: 100, techTable: 450, validity: 900 }
+            const hiddenSections = content.hiddenSections || []
 
-            {/* Technical Specifications Table */}
-            <div className="technical-table-section">
-              <table className="technical-table">
-                <tbody>
-                  {Array.isArray(content.technicalDetailsTable) && content.technicalDetailsTable.map((detail, idx) => (
-                    <tr key={idx}>
-                      <td className="table-title">
-                        <input
-                          type="text"
-                          value={detail.itemTitle}
-                          onChange={(e) => handleTableFieldChange(idx, 'itemTitle', e.target.value)}
-                          className="editable-table-input"
-                        />
-                      </td>
-                      <td className="table-description">
-                        <input
-                          type="text"
-                          value={detail.itemDescription}
-                          onChange={(e) => handleTableFieldChange(idx, 'itemDescription', e.target.value)}
-                          className="editable-table-input"
-                        />
-                      </td>
-                      <td style={{ border: 'none', background: 'transparent', width: '40px' }} data-html2canvas-ignore="true">
-                        <button
-                          type="button"
-                          onClick={() => onChange({ ...content, technicalDetailsTable: content.technicalDetailsTable.filter((_, i) => i !== idx) })}
-                          style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
-                        >
-                          ×
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button
-                type="button"
-                onClick={() => onChange({ ...content, technicalDetailsTable: [...content.technicalDetailsTable, { itemTitle: '', itemDescription: '' }] })}
+            // Handler to hide a section
+            const handleHideSection = (sectionKey: string) => {
+              onChange({
+                ...content,
+                hiddenSections: [...hiddenSections, sectionKey]
+              })
+            }
+
+            // Render drag handle for sections
+            const renderDragHandle = (sectionKey: string) => (
+              <div
                 data-html2canvas-ignore="true"
-                style={{ marginTop: '10px', padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                onMouseDown={(e) => handleSectionMouseDown(e, sectionKey)}
+                style={{
+                  display: 'inline-block',
+                  marginLeft: '8px',
+                  cursor: activeSectionKey === sectionKey ? 'grabbing' : 'grab',
+                  padding: '4px 8px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  userSelect: 'none'
+                }}
+                title="Drag to move section"
               >
-                + Adauga produs
-              </button>
-            </div>
+                ⋮⋮
+              </div>
+            )
 
-            {/* Validity */}
-            <div className="validity-section">
-              <EditableText
-                tagName="h4"
-                className="validity-title"
-                value={customText.validityTitle}
-                onChange={(val) => updateCustomText('validityTitle', val)}
-              />
-              <EditableText
-                tagName="p"
-                className="validity-text"
-                value={customText.validityText}
-                onChange={(val) => updateCustomText('validityText', val)}
-              />
-            </div>
-          </>
+            // Render close button for sections
+            const renderCloseButton = (sectionKey: string) => (
+              <button
+                data-html2canvas-ignore="true"
+                type="button"
+                onClick={() => handleHideSection(sectionKey)}
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  lineHeight: '1'
+                }}
+                title="Delete section"
+              >
+                ×
+              </button>
+            )
+
+            return (
+              <div
+                style={{ position: 'relative', minHeight: '1200px' }}
+                onMouseMove={handleSectionMouseMove}
+                onMouseUp={handleSectionMouseUp}
+                onMouseLeave={handleSectionMouseUp}
+              >
+                {/* Technical Description Section */}
+                {!hiddenSections.includes('techDescription') && (
+                  <div
+                    key="techDescription"
+                    className="technical-description"
+                    style={{
+                      position: 'absolute',
+                      top: `${positions.techDescription}px`,
+                      left: 0,
+                      right: 0,
+                      zIndex: activeSectionKey === 'techDescription' ? 1000 : 1,
+                      transition: activeSectionKey === 'techDescription' ? 'none' : 'top 0.1s ease',
+                      cursor: activeSectionKey === 'techDescription' ? 'grabbing' : 'default',
+                      background: 'white',
+                      padding: '12px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      marginBottom: '20px'
+                    }}
+                  >
+                    {renderCloseButton('techDescription')}
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <EditableText
+                        tagName="h3"
+                        className="section-title"
+                        value={customText.techDetailsTitle}
+                        onChange={(val) => updateCustomText('techDetailsTitle', val)}
+                      />
+                      {renderDragHandle('techDescription')}
+                    </div>
+                    <textarea
+                      value={content.technicalDetailsMessage}
+                      onChange={(e) => onChange({ ...content, technicalDetailsMessage: e.target.value })}
+                      className="editable-textarea technical-message"
+                      rows={4}
+                      style={{ width: '100%', minHeight: '80px', marginTop: '8px' }}
+                      placeholder="Introduceți descrierea tehnică aici..."
+                    />
+                  </div>
+                )}
+
+                {/* Technical Table Section */}
+                {!hiddenSections.includes('techTable') && (
+                  <div
+                    key="techTable"
+                    className="technical-table-section"
+                    style={{
+                      position: 'absolute',
+                      top: `${positions.techTable}px`,
+                      left: 0,
+                      right: 0,
+                      zIndex: activeSectionKey === 'techTable' ? 1000 : 1,
+                      transition: activeSectionKey === 'techTable' ? 'none' : 'top 0.1s ease',
+                      cursor: activeSectionKey === 'techTable' ? 'grabbing' : 'default',
+                      background: 'white',
+                      padding: '12px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      marginBottom: '20px'
+                    }}
+                  >
+                    {renderCloseButton('techTable')}
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                      <h3 style={{ margin: 0, fontSize: '14pt', fontWeight: 'bold' }}>Tabel Produse</h3>
+                      {renderDragHandle('techTable')}
+                    </div>
+                    <table className="technical-table">
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left', padding: '8px', borderBottom: '2px solid #e5e7eb' }}>Denumire</th>
+                          <th style={{ textAlign: 'left', padding: '8px', borderBottom: '2px solid #e5e7eb' }}>Descriere</th>
+                          <th style={{ width: '40px', border: 'none' }} data-html2canvas-ignore="true"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.isArray(content.technicalDetailsTable) && content.technicalDetailsTable.map((detail, idx) => (
+                          <tr key={idx}>
+                            <td className="table-title">
+                              <input
+                                type="text"
+                                value={detail.itemTitle}
+                                onChange={(e) => handleTableFieldChange(idx, 'itemTitle', e.target.value)}
+                                className="editable-table-input"
+                              />
+                            </td>
+                            <td className="table-description">
+                              <input
+                                type="text"
+                                value={detail.itemDescription}
+                                onChange={(e) => handleTableFieldChange(idx, 'itemDescription', e.target.value)}
+                                className="editable-table-input"
+                              />
+                            </td>
+                            <td style={{ border: 'none', background: 'transparent', width: '40px' }} data-html2canvas-ignore="true">
+                              <button
+                                type="button"
+                                onClick={() => onChange({ ...content, technicalDetailsTable: content.technicalDetailsTable.filter((_, i) => i !== idx) })}
+                                style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                              >
+                                ×
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <button
+                      type="button"
+                      onClick={() => onChange({ ...content, technicalDetailsTable: [...content.technicalDetailsTable, { itemTitle: '', itemDescription: '' }] })}
+                      data-html2canvas-ignore="true"
+                      style={{ marginTop: '10px', padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      + Adauga produs
+                    </button>
+                  </div>
+                )}
+
+                {/* Validity Section */}
+                {!hiddenSections.includes('validity') && (
+                  <div
+                    key="validity"
+                    className="validity-section"
+                    style={{
+                      position: 'absolute',
+                      top: `${positions.validity}px`,
+                      left: 0,
+                      right: 0,
+                      zIndex: activeSectionKey === 'validity' ? 1000 : 1,
+                      transition: activeSectionKey === 'validity' ? 'none' : 'top 0.1s ease',
+                      cursor: activeSectionKey === 'validity' ? 'grabbing' : 'default',
+                      background: 'white',
+                      padding: '12px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      marginBottom: '20px'
+                    }}
+                  >
+                    {renderCloseButton('validity')}
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <EditableText
+                        tagName="h4"
+                        className="validity-title"
+                        value={customText.validityTitle}
+                        onChange={(val) => updateCustomText('validityTitle', val)}
+                      />
+                      {renderDragHandle('validity')}
+                    </div>
+                    <EditableText
+                      tagName="p"
+                      className="validity-text"
+                      value={customText.validityText}
+                      onChange={(val) => updateCustomText('validityText', val)}
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          })()
         )}
       </div>
     </div>
@@ -660,7 +848,12 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             technicalDetailsTable: content.technicalDetailsTable || [],
             productImages,
             nextImageId: imageId,
-            type: 'product' // Default type
+            type: 'product', // Default type
+            sectionPositions: { // Default Y positions
+              techDescription: 100,
+              techTable: 450,
+              validity: 900
+            }
           }
         })
       }
@@ -707,7 +900,12 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         technicalDetailsTable: content.technicalDetailsTable || [],
         productImages,
         nextImageId: imageId,
-        type: 'product'
+        type: 'product',
+        sectionPositions: { // Default Y positions
+          techDescription: 100,
+          techTable: 450,
+          validity: 900
+        }
       }]
     })
 
@@ -783,7 +981,12 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         technicalDetailsMessage: '',
         technicalDetailsTable: [],
         productImages: [],
-        nextImageId: 1
+        nextImageId: 1,
+        sectionPositions: { // Default Y positions
+          techDescription: 100,
+          techTable: 450,
+          validity: 900
+        }
       }
       setPages(prev => [...prev, newPage])
       // Update refs
@@ -808,7 +1011,12 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
         // Deep copy objects to avoid reference sharing
         technicalDetailsTable: lastPage.technicalDetailsTable ? lastPage.technicalDetailsTable.map(t => ({ ...t })) : [],
         productImages: lastPage.productImages.map(img => ({ ...img, id: `img-clone-${Date.now()}-${Math.random()}` })),
-        nextImageId: lastPage.nextImageId + 100 // Avoid collision
+        nextImageId: lastPage.nextImageId + 100, // Avoid collision
+        sectionPositions: lastPage.sectionPositions ? { ...lastPage.sectionPositions } : { // Clone section positions
+          techDescription: 100,
+          techTable: 450,
+          validity: 900
+        }
       }
 
       setPages(prev => [...prev, newPage])
@@ -935,8 +1143,8 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             // Note: We are trusting the render state is correct.
           })
 
-          // Force layout
-          pageRef.style.overflow = 'hidden'
+          // Force layout - ensure overflow visible so absolutely positioned images are captured
+          pageRef.style.overflow = 'visible'
           await new Promise(resolve => setTimeout(resolve, 200)) // Slight delay for style application
 
           // CRITICAL: Convert all images to base64 before capturing to avoid CORS issues
@@ -946,7 +1154,6 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           const canvas = await html2canvas(pageRef, {
             scale: 2,
             useCORS: true,
-            allowTaint: true,
             backgroundColor: '#ffffff',
             ignoreElements: (element) => {
               if (element.getAttribute('data-image-draggable') === 'true') return false
@@ -957,6 +1164,24 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
               const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement
               if (clonedTemplate) {
                 clonedTemplate.style.overflow = 'visible'
+
+                // CRITICAL: Ensure all product pages have overflow visible for absolutely positioned images
+                const productPages = clonedDoc.querySelectorAll('.product-page') as NodeListOf<HTMLElement>
+                productPages.forEach(page => {
+                  page.style.overflow = 'visible'
+                })
+
+                // Remove editor-only borders from section containers
+                const sectionSelectors = ['.technical-description', '.technical-table-section', '.validity-section']
+                sectionSelectors.forEach(selector => {
+                  const sections = clonedDoc.querySelectorAll(selector) as NodeListOf<HTMLElement>
+                  sections.forEach(section => {
+                    section.style.border = 'none'
+                    section.style.borderRadius = '0'
+                    section.style.boxShadow = 'none'
+                  })
+                })
+
                 // CHANGE: Select ALL textareas in the document to handle multi-page/consolidated views
                 const textareas = clonedDoc.querySelectorAll('textarea')
                 console.log('[PDF] Found', textareas.length, 'textareas to replace')
@@ -1119,10 +1344,25 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       <div className="offer-template-container">
         {/* Global Controls */}
         <div className="offer-template-actions">
-          <div className="product-link-row" style={{ marginRight: 'auto' }}>
-            {initialMetadata.productWebPage && (
-              <a href={initialMetadata.productWebPage} target="_blank" rel="noreferrer">{initialMetadata.productWebPage}</a>
-            )}
+          <div className="product-link-row" style={{ marginRight: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '80px', overflowY: 'auto' }}>
+            {(() => {
+              // Collect all unique productWebPage links from main metadata and sub-offers
+              const allLinks: string[] = []
+              if (initialMetadata.productWebPage) {
+                allLinks.push(initialMetadata.productWebPage)
+              }
+              if (offerData.subOffers) {
+                offerData.subOffers.forEach(sub => {
+                  const subMeta = sub.offerMetadata
+                  if (subMeta?.productWebPage && !allLinks.includes(subMeta.productWebPage)) {
+                    allLinks.push(subMeta.productWebPage)
+                  }
+                })
+              }
+              return allLinks.map((link, idx) => (
+                <a key={idx} href={link} target="_blank" rel="noreferrer" style={{ display: 'block', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{link}</a>
+              ))
+            })()}
           </div>
           <div className="design-controls">
             <div className="color-picker-group">
