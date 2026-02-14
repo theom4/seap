@@ -910,6 +910,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     })
 
     // Theme & Custom Text (Global)
+    const [isGenerating, setIsGenerating] = useState(false)
     const [themeColors, setThemeColors] = useState({
       primary: '#ffffff', secondary: '#ffffff', text: '#1f2933', bg: '#ffffff',
     })
@@ -1161,9 +1162,16 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
             },
             onclone: (clonedDoc) => {
               // Textarea replacement logic (CRITICAL for PDF text quality)
-              const clonedTemplate = clonedDoc.querySelector('.offer-template') as HTMLElement
-              if (clonedTemplate) {
+              // Apply to ALL .offer-template elements (there's one per page)
+              const allTemplates = clonedDoc.querySelectorAll('.offer-template') as NodeListOf<HTMLElement>
+              allTemplates.forEach(clonedTemplate => {
                 clonedTemplate.style.overflow = 'visible'
+                // Reduce padding for PDF to maximize content area (editor keeps original padding)
+                clonedTemplate.style.padding = '1rem 1.5rem'
+              })
+
+              const clonedTemplate = allTemplates[0] // for remaining logic below
+              if (clonedTemplate) {
 
                 // CRITICAL: Ensure all product pages have overflow visible for absolutely positioned images
                 const productPages = clonedDoc.querySelectorAll('.product-page') as NodeListOf<HTMLElement>
@@ -1307,16 +1315,9 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           const imgWidth = pdfWidth
           const imgHeight = (canvas.height * pdfWidth) / canvas.width
 
-          // Fit to page logic
-          if (imgHeight > pageHeight) {
-            const scale = pageHeight / imgHeight
-            // Center horizontally if scaled? No, maintain left align usually or center.
-            // Let's center horizontally
-            const xOffset = (pdfWidth - (imgWidth * scale)) / 2
-            pdf.addImage(imgData, 'JPEG', xOffset, 0, imgWidth * scale, pageHeight)
-          } else {
-            pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
-          }
+          // Always use full page width with natural aspect ratio - no distortion
+          // If content overflows the page height, it clips at the bottom edge
+          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
         }
 
         // Cleanup: If hideAnnexInPDF is true, Page 1 is blank.
@@ -1403,10 +1404,30 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
           </button>
 
           {!hideGenerateButton && (
-            <button onClick={async () => {
-              try { onGeneratePDF(await generateFinalPDF()) } catch (e) { alert('Error locally') }
-            }} className="generate-pdf-button">
-              Generate PDF
+            <button
+              onClick={async () => {
+                if (isGenerating) return;
+                setIsGenerating(true);
+                try {
+                  const pdfBlob = await generateFinalPDF();
+                  onGeneratePDF(pdfBlob);
+                } catch (e) {
+                  console.error("PDF Generation error:", e);
+                  alert('Error generating PDF locally');
+                } finally {
+                  setIsGenerating(false);
+                }
+              }}
+              className="generate-pdf-button"
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <span className="spinner"></span> Generating...
+                </>
+              ) : (
+                'Generate PDF'
+              )}
             </button>
           )}
         </div>

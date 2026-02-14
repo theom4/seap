@@ -34,7 +34,8 @@
 }
 
 .offer-template {
-  position: relative; /* This allows the image to move inside this container */
+  position: relative;
+  /* This allows the image to move inside this container */
   /* Default Theme Variables - will be overridden by inline styles */
   --theme-primary: #ffffff;
   --theme-secondary: #ffffff;
@@ -51,7 +52,8 @@
   color: var(--theme-text);
   line-height: 1.7;
   letter-spacing: 0.01em;
-  box-sizing: border-box; /* Ensure padding is included in the total width/height */
+  box-sizing: border-box;
+  /* Ensure padding is included in the total width/height */
 }
 
 /* Header */
@@ -740,14 +742,16 @@
   position: absolute;
   width: 12px;
   height: 12px;
-  background-color: #3b82f6; /* Blue color like Canva */
+  background-color: #3b82f6;
+  /* Blue color like Canva */
   border: 2px solid white;
   border-radius: 50%;
   bottom: -6px;
   right: -6px;
-  cursor: nwse-resize; /* Diagonal resize cursor */
+  cursor: nwse-resize;
+  /* Diagonal resize cursor */
   z-index: 110;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .resize-handle:hover {
@@ -771,8 +775,32 @@
   border-color: #4CAF50;
 }
 
-.product-image-draggable img {
-  /* Removed transition to prevent capture issues during PDF generation */
-}
+
 
 /* Hide UI elements during PDF generation via html2canvas is handled by data-html2canvas-ignore */
+
+/* Loading Spinner */
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.generate-pdf-button:disabled {
+  background-color: #93c5fd;
+  /* Light blue */
+  cursor: not-allowed;
+  opacity: 0.8;
+}
