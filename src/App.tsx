@@ -341,7 +341,7 @@ function App() {
           // 3. Send Request
           let response: Response;
           try {
-            const webhookUrl = '/api/webhook-proxy'
+            const webhookUrl = 'https://n8n.voisero.info/webhook/seap-test'
             console.log(`[Upload] Sending POST to ${webhookUrl}`)
             console.log(`[Upload] Payload size: ${JSON.stringify(payload).length} chars`)
 
