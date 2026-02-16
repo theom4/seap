@@ -1066,7 +1066,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
       try {
         const pdf = new jsPDF('p', 'mm', 'a4')
         const pdfWidth = 210
-        const pageHeight = 297
+        const _pageHeight = 297
 
         // 1. Annex
         if (!hideAnnexInPDF) {
