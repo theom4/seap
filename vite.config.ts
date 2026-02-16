@@ -47,4 +47,13 @@ export default defineConfig({
       },
     },
   ],
+  server: {
+    proxy: {
+      '/api/n8n': {
+        target: 'https://n8n.voisero.info',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/n8n/, ''),
+      },
+    },
+  },
 })

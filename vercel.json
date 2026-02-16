@@ -5,6 +5,10 @@
             "destination": "/api/proxy-image"
         },
         {
+            "source": "/api/n8n/:path*",
+            "destination": "https://n8n.voisero.info/:path*"
+        },
+        {
             "source": "/((?!api/).*)",
             "destination": "/index.html"
         }
