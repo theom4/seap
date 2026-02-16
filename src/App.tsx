@@ -341,7 +341,11 @@ function App() {
           // 3. Send Request
           let response: Response;
           try {
-            response = await fetch('/api/n8n/webhook/seap-test', {
+            const webhookUrl = '/api/webhook-proxy'
+            console.log(`[Upload] Sending POST to ${webhookUrl}`)
+            console.log(`[Upload] Payload size: ${JSON.stringify(payload).length} chars`)
+
+            response = await fetch(webhookUrl, {
               method: 'POST',
               signal: controller.signal,
               headers: {
@@ -350,11 +354,17 @@ function App() {
               body: JSON.stringify(payload),
             })
 
+            console.log(`[Upload] Response status: ${response.status} ${response.statusText}`)
+            console.log(`[Upload] Response URL: ${response.url}`)
+
             if (!response.ok) {
-              throw new Error(`Upload failed: ${response.statusText}`)
+              const errorBody = await response.text()
+              console.error(`[Upload] Error response body: ${errorBody.substring(0, 500)}`)
+              throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorBody.substring(0, 200)}`)
             }
           } catch (netError: any) {
-            if (netError.name === 'AbortError') console.log('timeout')
+            if (netError.name === 'AbortError') console.log('[Upload] Request timed out (AbortError)')
+            console.error(`[Upload] Network error: ${netError.message}`)
             throw netError
           }
 
