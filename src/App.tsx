@@ -121,6 +121,8 @@ function App() {
   // Link tab state
   const [linkText, setLinkText] = useState('')
   const [linkLoading, setLinkLoading] = useState(false)
+  const [linkWebhookResponse, setLinkWebhookResponse] = useState<WebhookResponse | null>(null)
+  const [linkElapsedSeconds, setLinkElapsedSeconds] = useState(0)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -577,12 +579,32 @@ function App() {
   const handleLinkSearch = async () => {
     if (!linkText.trim()) return
     setLinkLoading(true)
+    setLinkWebhookResponse(null)
     try {
-      await fetch('https://n8n.voisero.info/webhook/seap-link', {
+      const response = await fetch('https://n8n.voisero.info/webhook/seap-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ links: linkText }),
       })
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status} ${response.statusText}`)
+      }
+
+      const responseText = await response.text()
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Empty response from server')
+      }
+
+      const responseData: WebhookResponse = JSON.parse(responseText)
+      const offersFromLink = getAllOffers(responseData)
+      const consolidatedOffer = consolidateOffers(offersFromLink)
+
+      if (consolidatedOffer) {
+        setLinkWebhookResponse([consolidatedOffer])
+      } else {
+        console.warn('No offers found in link search response')
+      }
     } catch (error) {
       console.error('Link search error:', error)
     } finally {
@@ -608,6 +630,19 @@ function App() {
 
     return () => clearInterval(interval)
   }, [isProcessing, webhookResponse])
+
+  // Timer for link loading animation
+  useEffect(() => {
+    if (!linkLoading) {
+      setLinkElapsedSeconds(0)
+      return
+    }
+    setLinkElapsedSeconds(0)
+    const interval = setInterval(() => {
+      setLinkElapsedSeconds(prev => prev + 1)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [linkLoading])
 
   // Play notification sound when webhook response is received
   useEffect(() => {
@@ -1196,6 +1231,19 @@ function App() {
                     </div>
                   </div>
                 )
+              ) : activeTab === 'link' && (linkLoading || linkWebhookResponse) ? (
+                linkLoading ? (
+                  <div>
+                    <LoadingAnimation elapsedSeconds={linkElapsedSeconds} />
+                  </div>
+                ) : linkWebhookResponse ? (
+                  <OffersList
+                    webhookResponse={linkWebhookResponse}
+                    onClear={() => {
+                      setLinkWebhookResponse(null)
+                    }}
+                  />
+                ) : null
               ) : isProcessing && !webhookResponse ? (
                 <div>
                   <LoadingAnimation elapsedSeconds={elapsedSeconds} />
