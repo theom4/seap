@@ -666,7 +666,12 @@ const ProductPage = forwardRef<HTMLDivElement, ProductPageProps>(({
                   >
                     {renderCloseButton('techTable')}
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                      <h3 style={{ margin: 0, fontSize: '14pt', fontWeight: 'bold' }}>Tabel Produse</h3>
+                      <EditableText
+                        tagName="h3"
+                        className="section-title"
+                        value={customText.techTableTitle}
+                        onChange={(val) => updateCustomText('techTableTitle', val)}
+                      />
                       {renderDragHandle('techTable')}
                     </div>
                     <table className="technical-table">
@@ -917,6 +922,7 @@ export const OfferTemplate = forwardRef<OfferTemplateRef, OfferTemplateProps>(
     const [customText, setCustomText] = useState({
       productPageLabel: 'Pagină produs:',
       techDetailsTitle: 'Descriere Tehnică Detaliată',
+      techTableTitle: 'Tabel Produse',
       specialPriceLabel: 'PRET SPECIAL DE OFERTĂ',
       priceNote: 'TVA Inclus. Livrare Standard Gratuită.',
       validityTitle: 'Condiții de valabilitate:',

@@ -103,6 +103,7 @@ function App() {
   const [webhookResponse, setWebhookResponse] = useState<WebhookResponse | null>(null)
   const [uploadTimestamp, setUploadTimestamp] = useState<number | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [activeTab, setActiveTab] = useState<'fisier' | 'link' | 'cerinta' | 'istoric'>('fisier')
 
   // Model Selection State
   const [modelProvider, setModelProvider] = useState<ModelProvider>('openai')
@@ -110,6 +111,16 @@ function App() {
   const [includeImages, setIncludeImages] = useState(false)
   const [notifyOnCompletion, setNotifyOnCompletion] = useState(false)
   const [optionalProductName, setOptionalProductName] = useState('')
+
+  // Cerinta tab state
+  const [cerintaFile, setCerintaFile] = useState<File | null>(null)
+  const [cerintaLoading, setCerintaLoading] = useState(false)
+  const [cerintaResult, setCerintaResult] = useState<Array<{ productName: string; productDescription: string }> | null>(null)
+  const [cerintaError, setCerintaError] = useState<string | null>(null)
+
+  // Link tab state
+  const [linkText, setLinkText] = useState('')
+  const [linkLoading, setLinkLoading] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -341,7 +352,7 @@ function App() {
           // 3. Send Request
           let response: Response;
           try {
-            const webhookUrl = 'https://n8n.voisero.info/webhook/seap-test'
+            const webhookUrl = 'https://n8n.voisero.info/webhook-test/seap-test'
             console.log(`[Upload] Sending POST to ${webhookUrl}`)
             console.log(`[Upload] Payload size: ${JSON.stringify(payload).length} chars`)
 
@@ -503,6 +514,81 @@ function App() {
     setWebhookResponse(mockSeedData)
   }
 
+  // Cerinta: upload file and extract requirements
+  const handleCerintaUpload = async () => {
+    if (!cerintaFile) return
+    setCerintaLoading(true)
+    setCerintaError(null)
+    setCerintaResult(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', cerintaFile)
+
+      const response = await fetch('https://n8n.voisero.info/webhook/seap-document-parsing', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`)
+      }
+
+      const data = await response.text()
+
+      // Parse the nested Gemini response: {content:{parts:[{text:"..."}]}}
+      let products: Array<{ productName: string; productDescription: string }> = []
+      try {
+        const parsed = JSON.parse(data)
+        let jsonText = ''
+
+        // Handle Gemini-style response
+        if (parsed?.content?.parts?.[0]?.text) {
+          jsonText = parsed.content.parts[0].text
+        } else if (typeof parsed === 'string') {
+          jsonText = parsed
+        } else if (Array.isArray(parsed)) {
+          products = parsed
+        } else {
+          jsonText = data
+        }
+
+        // If we got a text string, strip markdown fences and parse
+        if (jsonText && products.length === 0) {
+          jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          products = JSON.parse(jsonText)
+        }
+      } catch (parseErr) {
+        console.warn('Could not parse as product JSON, showing raw:', parseErr)
+        // Fallback: show as single product with raw text
+        products = [{ productName: 'Rezultat', productDescription: data }]
+      }
+
+      setCerintaResult(products)
+    } catch (error) {
+      console.error('Cerinta upload error:', error)
+      setCerintaError(error instanceof Error ? error.message : 'Eroare la procesare')
+    } finally {
+      setCerintaLoading(false)
+    }
+  }
+
+  // Link: send links to webhook
+  const handleLinkSearch = async () => {
+    if (!linkText.trim()) return
+    setLinkLoading(true)
+    try {
+      await fetch('https://n8n.voisero.info/webhook/seap-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ links: linkText }),
+      })
+    } catch (error) {
+      console.error('Link search error:', error)
+    } finally {
+      setLinkLoading(false)
+    }
+  }
 
   const isProcessing = files.some(f => f.status === 'extracting' || f.status === 'uploading')
   const hasFiles = files.length > 0
@@ -575,306 +661,578 @@ function App() {
 
 
   return (
-    <div className="min-h-screen bg-back text-text-main">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <h1 className="text-4xl font-bold text-text-main">
-            Generator Oferte PDF
-          </h1>
-          <button
-            onClick={loadMockData}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors shadow-sm"
-          >
-            Încarcă Date Test
-          </button>
+    <div className="min-h-screen bg-back text-text-main flex">
+      {/* Narrow Sidebar Navigation */}
+      <div className="w-16 bg-surface border-r border-border flex flex-col items-center py-6 space-y-1 flex-shrink-0">
+        {/* Logo / Brand */}
+        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
+          <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
         </div>
 
-        {/* Main Layout: 30% Upload, 70% PDF Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-[30%_70%] gap-6">
-          {/* Upload Zone - Left Side (30%) */}
-          <div className="space-y-4">
-            {/* Model Selection Zone */}
-            <div className="bg-surface rounded-xl shadow-md p-4 space-y-3 border border-border">
-              <h2 className="text-lg font-semibold text-text-main mb-2">Model Configuration</h2>
+        {/* Nav Items */}
+        <button
+          onClick={() => setActiveTab('fisier')}
+          className={`group relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${activeTab === 'fisier'
+            ? 'bg-primary/15 text-primary shadow-sm'
+            : 'text-text-muted hover:text-text-main hover:bg-surface-hover'
+            }`}
+          title="Cautare Dupa fisier"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          {activeTab === 'fisier' && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
+          )}
+          {/* Tooltip */}
+          <div className="absolute left-full ml-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+            Cautare Dupa fisier
+          </div>
+        </button>
 
-              {/* Provider Toggle */}
-              <div className="flex p-1 bg-surface-hover rounded-lg border border-border">
-                <button
-                  onClick={() => setModelProvider('openai')}
-                  className={`flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200 ${modelProvider === 'openai'
-                    ? 'bg-primary text-back shadow-sm'
-                    : 'text-text-muted hover:text-text-main'
-                    }`}
-                >
-                  OpenAI
-                </button>
-                <button
-                  onClick={() => setModelProvider('gemini')}
-                  className={`flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200 ${modelProvider === 'gemini'
-                    ? 'bg-primary text-back shadow-sm'
-                    : 'text-text-muted hover:text-text-main'
-                    }`}
-                >
-                  Gemini
-                </button>
-                <button
-                  onClick={() => setModelProvider('grok')}
-                  className={`flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200 ${modelProvider === 'grok'
-                    ? 'bg-primary text-back shadow-sm'
-                    : 'text-text-muted hover:text-text-main'
-                    }`}
-                >
-                  Grok
-                </button>
-              </div>
+        <button
+          onClick={() => setActiveTab('link')}
+          className={`group relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${activeTab === 'link'
+            ? 'bg-primary/15 text-primary shadow-sm'
+            : 'text-text-muted hover:text-text-main hover:bg-surface-hover'
+            }`}
+          title="Cautare Dupa link"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          {activeTab === 'link' && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
+          )}
+          <div className="absolute left-full ml-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+            Cautare Dupa link
+          </div>
+        </button>
 
-              {/* Model Dropdown */}
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-text-muted block">
-                  Select Model
-                </label>
-                <div className="relative">
-                  <select
-                    value={selectedModel}
-                    onChange={(e) => setSelectedModel(e.target.value)}
-                    className="w-full p-2.5 bg-surface border border-border rounded-lg text-sm text-text-main focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
-                  >
-                    {MODELS[modelProvider].map((model) => (
-                      <option key={model} value={model}>
-                        {model}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
+        <button
+          onClick={() => setActiveTab('cerinta')}
+          className={`group relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${activeTab === 'cerinta'
+            ? 'bg-primary/15 text-primary shadow-sm'
+            : 'text-text-muted hover:text-text-main hover:bg-surface-hover'
+            }`}
+          title="Extrage cerinta"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+          {activeTab === 'cerinta' && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
+          )}
+          <div className="absolute left-full ml-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+            Extrage cerinta din caietul de sarcina
+          </div>
+        </button>
 
-              {/* Include Images Switch */}
-              <div className="flex items-center justify-between p-2.5 bg-surface border border-border rounded-lg">
-                <span className="text-sm font-medium text-text-main">Adauga imagini produs</span>
-                <button
-                  onClick={() => setIncludeImages(!includeImages)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${includeImages ? 'bg-primary' : 'bg-gray-200'
-                    }`}
-                >
-                  <span
-                    className={`${includeImages ? 'translate-x-6' : 'translate-x-1'
-                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                  />
-                </button>
-              </div>
+        <button
+          onClick={() => setActiveTab('istoric')}
+          className={`group relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${activeTab === 'istoric'
+            ? 'bg-primary/15 text-primary shadow-sm'
+            : 'text-text-muted hover:text-text-main hover:bg-surface-hover'
+            }`}
+          title="Istoric Oferte"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {activeTab === 'istoric' && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
+          )}
+          <div className="absolute left-full ml-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+            Istoric Oferte
+          </div>
+        </button>
 
-              {/* Notification Toggle */}
-              <div className="flex items-center justify-between p-2.5 bg-surface border border-border rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  <span className="text-sm font-medium text-text-main">Notificare cautare finalizata</span>
-                </div>
-                <button
-                  onClick={() => setNotifyOnCompletion(!notifyOnCompletion)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${notifyOnCompletion ? 'bg-primary' : 'bg-gray-200'
-                    }`}
-                >
-                  <span
-                    className={`${notifyOnCompletion ? 'translate-x-6' : 'translate-x-1'
-                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                  />
-                </button>
-              </div>
+        {/* Spacer */}
+        <div className="flex-1" />
 
-              {/* Optional Product Name Input */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-text-muted block">
-                  Optional: Denumirea produsului
-                </label>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <input
-                    type="text"
-                    value={optionalProductName}
-                    onChange={(e) => setOptionalProductName(e.target.value)}
-                    placeholder="Ex: Laptop Dell Latitude 5520"
-                    className="w-full pl-10 pr-3 py-2.5 bg-surface border border-border rounded-lg text-sm text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                  />
-                </div>
-                <p className="text-xs text-text-muted leading-relaxed">
-                  Folosit în cazul în care în caietul de sarcini nu apare denumirea. Denumirea fiind obligatorie pentru găsirea produsului corect.
-                </p>
-              </div>
-            </div>
+        {/* Test Data Button at Bottom */}
+        <button
+          onClick={loadMockData}
+          className="group relative w-12 h-12 rounded-xl flex items-center justify-center text-text-muted hover:text-blue-400 hover:bg-surface-hover transition-all duration-200"
+          title="Încarcă Date Test"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          </svg>
+          <div className="absolute left-full ml-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+            Încarcă Date Test
+          </div>
+        </button>
+      </div>
 
-            <div
-              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300 cursor-pointer ${isDragging
-                ? 'border-primary bg-surface-hover scale-105 shadow-lg'
-                : 'border-border bg-surface hover:border-primary hover:shadow-md'
-                }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.jpg,.jpeg,.png"
-                multiple
-                className="hidden"
-                onChange={(e) => handleFileSelect(e.target.files)}
-              />
-              <div className="space-y-4">
-                <div className="relative mx-auto w-16 h-16">
-                  <svg
-                    className="w-full h-full text-primary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-text-main mb-1">
-                    Încarcă Documente
-                  </p>
-                  <p className="text-xs text-text-muted">
-                    sau trage și plasează aici
-                  </p>
-                </div>
-              </div>
-            </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {/* Top Header Bar */}
+        <div className="h-14 bg-surface border-b border-border flex items-center px-6 flex-shrink-0">
+          <h1 className="text-lg font-semibold text-text-main">
+            {activeTab === 'fisier' && 'Cautare Dupa fisier'}
+            {activeTab === 'link' && 'Cautare Dupa link'}
+            {activeTab === 'cerinta' && 'Extrage cerinta din caietul de sarcina'}
+            {activeTab === 'istoric' && 'Istoric Oferte'}
+          </h1>
+        </div>
 
-            {hasFiles && (
-              <div className="bg-surface rounded-xl shadow-md p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold text-text-main">
-                    Fișiere ({files.length})
-                  </h2>
-                  <div className="space-x-2">
+        {/* Content Body */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Controls Panel - Left */}
+          <div className="w-[340px] flex-shrink-0 border-r border-border bg-surface/50 overflow-y-auto p-4 space-y-4">
+
+            {/* === FISIER TAB CONTENT === */}
+            {activeTab === 'fisier' && (
+              <>
+                {/* Model Selection Zone */}
+                <div className="bg-surface rounded-xl shadow-sm p-4 space-y-3 border border-border">
+                  <h2 className="text-sm font-semibold text-text-main mb-2">Model Configuration</h2>
+
+                  {/* Provider Toggle */}
+                  <div className="flex p-1 bg-surface-hover rounded-lg border border-border">
                     <button
-                      onClick={uploadAllFiles}
-                      disabled={files.every((f) => f.status !== 'pending')}
-                      className="px-3 py-1.5 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-xs font-bold transition-colors"
+                      onClick={() => setModelProvider('openai')}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${modelProvider === 'openai'
+                        ? 'bg-primary text-back shadow-sm'
+                        : 'text-text-muted hover:text-text-main'
+                        }`}
                     >
-                      Încarcă Toate
+                      OpenAI
                     </button>
                     <button
-                      onClick={clearAll}
-                      className="px-3 py-1.5 bg-red-900/50 text-red-200 border border-red-900 rounded-lg hover:bg-red-900 text-xs font-medium transition-colors"
+                      onClick={() => setModelProvider('gemini')}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${modelProvider === 'gemini'
+                        ? 'bg-primary text-back shadow-sm'
+                        : 'text-text-muted hover:text-text-main'
+                        }`}
                     >
-                      Șterge
+                      Gemini
+                    </button>
+                    <button
+                      onClick={() => setModelProvider('grok')}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${modelProvider === 'grok'
+                        ? 'bg-primary text-back shadow-sm'
+                        : 'text-text-muted hover:text-text-main'
+                        }`}
+                    >
+                      Grok
                     </button>
                   </div>
-                </div>
 
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {files.map((fileWithStatus, index) => (
-                    <div
-                      key={index}
-                      className="bg-surface border border-border rounded-lg p-3 flex items-center justify-between hover:bg-surface-hover transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-text-main truncate">
-                          {fileWithStatus.file.name}
-                        </p>
-                        <p className="text-xs text-text-muted">
-                          {(fileWithStatus.file.size / 1024).toFixed(2)} KB
-                        </p>
-                        {fileWithStatus.error && (
-                          <p className="text-xs text-red-400 mt-1">
-                            {fileWithStatus.error}
-                          </p>
-                        )}
+                  {/* Model Dropdown */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-text-muted block">
+                      Select Model
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="w-full p-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                      >
+                        {MODELS[modelProvider].map((model) => (
+                          <option key={model} value={model}>
+                            {model}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
                       </div>
-                      <div className="flex items-center space-x-2 ml-2">
-                        {(fileWithStatus.status === 'extracting' || fileWithStatus.status === 'uploading') && (
-                          <div className="flex items-center space-x-1">
-                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
-                            <span className="text-xs text-text-muted">
-                              {fileWithStatus.status === 'extracting' ? 'Extragere...' : 'Procesare...'}
-                            </span>
-                          </div>
-                        )}
-                        {fileWithStatus.status === 'success' && (
-                          <span className="text-xs text-success font-medium">
-                            ✓
-                          </span>
-                        )}
-                        {fileWithStatus.status === 'error' && (
-                          <span className="text-xs text-red-400 font-medium">
-                            ✗
-                          </span>
-                        )}
+                    </div>
+                  </div>
+
+                  {/* Include Images Switch */}
+                  <div className="flex items-center justify-between p-2 bg-surface border border-border rounded-lg">
+                    <span className="text-xs font-medium text-text-main">Adauga imagini produs</span>
+                    <button
+                      onClick={() => setIncludeImages(!includeImages)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${includeImages ? 'bg-primary' : 'bg-gray-200'
+                        }`}
+                    >
+                      <span
+                        className={`${includeImages ? 'translate-x-5' : 'translate-x-0.5'
+                          } inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Notification Toggle */}
+                  <div className="flex items-center justify-between p-2 bg-surface border border-border rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-3.5 h-3.5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      <span className="text-xs font-medium text-text-main">Notificare finalizata</span>
+                    </div>
+                    <button
+                      onClick={() => setNotifyOnCompletion(!notifyOnCompletion)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${notifyOnCompletion ? 'bg-primary' : 'bg-gray-200'
+                        }`}
+                    >
+                      <span
+                        className={`${notifyOnCompletion ? 'translate-x-5' : 'translate-x-0.5'
+                          } inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Optional Product Name Input */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-text-muted block">
+                      Optional: Denumirea produsului
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
+                      <input
+                        type="text"
+                        value={optionalProductName}
+                        onChange={(e) => setOptionalProductName(e.target.value)}
+                        placeholder="Ex: Laptop Dell Latitude 5520"
+                        className="w-full pl-8 pr-3 py-2 bg-surface border border-border rounded-lg text-xs text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                      />
+                    </div>
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      Folosit în cazul în care în caietul de sarcini nu apare denumirea.
+                    </p>
+                  </div>
+                </div>
+
+                {/* File Upload Zone */}
+                <div
+                  className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 cursor-pointer ${isDragging
+                    ? 'border-primary bg-surface-hover scale-[1.02] shadow-lg'
+                    : 'border-border bg-surface hover:border-primary hover:shadow-md'
+                    }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.docx,.jpg,.jpeg,.png"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleFileSelect(e.target.files)}
+                  />
+                  <div className="space-y-3">
+                    <div className="relative mx-auto w-12 h-12">
+                      <svg
+                        className="w-full h-full text-primary"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-text-main mb-0.5">
+                        Încarcă Documente
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        sau trage și plasează aici
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* File List */}
+                {hasFiles && (
+                  <div className="bg-surface rounded-xl shadow-sm p-3 space-y-2 border border-border">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-sm font-semibold text-text-main">
+                        Fișiere ({files.length})
+                      </h2>
+                      <div className="space-x-1.5">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            removeFile(index)
-                          }}
-                          className="px-2 py-1 text-xs font-medium text-text-muted hover:text-red-400 transition-colors"
+                          onClick={uploadAllFiles}
+                          disabled={files.every((f) => f.status !== 'pending')}
+                          className="px-2.5 py-1 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-xs font-bold transition-colors"
+                        >
+                          Încarcă Toate
+                        </button>
+                        <button
+                          onClick={clearAll}
+                          className="px-2.5 py-1 bg-red-900/50 text-red-200 border border-red-900 rounded-lg hover:bg-red-900 text-xs font-medium transition-colors"
                         >
                           Șterge
                         </button>
                       </div>
                     </div>
-                  ))}
+
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                      {files.map((fileWithStatus, index) => (
+                        <div
+                          key={index}
+                          className="bg-surface border border-border rounded-lg p-2.5 flex items-center justify-between hover:bg-surface-hover transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-text-main truncate">
+                              {fileWithStatus.file.name}
+                            </p>
+                            <p className="text-[11px] text-text-muted">
+                              {(fileWithStatus.file.size / 1024).toFixed(2)} KB
+                            </p>
+                            {fileWithStatus.error && (
+                              <p className="text-[11px] text-red-400 mt-0.5">
+                                {fileWithStatus.error}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-1.5 ml-2">
+                            {(fileWithStatus.status === 'extracting' || fileWithStatus.status === 'uploading') && (
+                              <div className="flex items-center space-x-1">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
+                                <span className="text-[11px] text-text-muted">
+                                  {fileWithStatus.status === 'extracting' ? 'Extragere...' : 'Procesare...'}
+                                </span>
+                              </div>
+                            )}
+                            {fileWithStatus.status === 'success' && (
+                              <span className="text-xs text-success font-medium">✓</span>
+                            )}
+                            {fileWithStatus.status === 'error' && (
+                              <span className="text-xs text-red-400 font-medium">✗</span>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeFile(index)
+                              }}
+                              className="px-1.5 py-0.5 text-[11px] font-medium text-text-muted hover:text-red-400 transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* === LINK TAB CONTENT === */}
+            {activeTab === 'link' && (
+              <div className="bg-surface rounded-xl shadow-sm p-4 space-y-4 border border-border">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-text-main block">
+                    Insereaza link
+                  </label>
+                  <textarea
+                    value={linkText}
+                    onChange={(e) => setLinkText(e.target.value)}
+                    placeholder="https://link1.com, https://link2.com, ..."
+                    rows={4}
+                    className="w-full px-3 py-2.5 bg-surface border border-border rounded-lg text-xs text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none"
+                  />
+                </div>
+                <button
+                  onClick={handleLinkSearch}
+                  disabled={!linkText.trim() || linkLoading}
+                  className="w-full py-2 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-sm font-bold transition-colors flex items-center justify-center space-x-2"
+                >
+                  {linkLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-back"></div>
+                      <span>Se trimite...</span>
+                    </>
+                  ) : (
+                    <span>Cautare</span>
+                  )}
+                </button>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Insereaza link-ul produselor gasite separate prin virgula si documentul se va genera.
+                </p>
+              </div>
+            )}
+
+            {/* === CERINTA TAB CONTENT === */}
+            {activeTab === 'cerinta' && (
+              <div className="bg-surface rounded-xl shadow-sm p-4 space-y-4 border border-border">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-text-main block">
+                    Încarcă caietul de sarcini
+                  </label>
+                  <div
+                    className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 cursor-pointer ${cerintaFile
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border bg-surface hover:border-primary hover:shadow-md'
+                      }`}
+                    onClick={() => {
+                      const input = document.getElementById('cerinta-file-input');
+                      if (input) input.click();
+                    }}
+                  >
+                    <input
+                      id="cerinta-file-input"
+                      type="file"
+                      accept=".pdf,.docx,.doc"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setCerintaFile(file);
+                        setCerintaResult(null);
+                        setCerintaError(null);
+                      }}
+                    />
+                    {cerintaFile ? (
+                      <div className="space-y-1">
+                        <svg className="w-8 h-8 text-primary mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-xs font-semibold text-primary truncate">{cerintaFile.name}</p>
+                        <p className="text-[11px] text-text-muted">{(cerintaFile.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="mx-auto w-10 h-10">
+                          <svg className="w-full h-full text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-text-main mb-0.5">Încarcă Document</p>
+                          <p className="text-xs text-text-muted">PDF sau DOCX</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleCerintaUpload}
+                  disabled={!cerintaFile || cerintaLoading}
+                  className="w-full py-2 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-sm font-bold transition-colors flex items-center justify-center space-x-2"
+                >
+                  {cerintaLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-back"></div>
+                      <span>Se proceseaza...</span>
+                    </>
+                  ) : (
+                    <span>Extrage cerinta</span>
+                  )}
+                </button>
+                {cerintaError && (
+                  <p className="text-xs text-red-400">{cerintaError}</p>
+                )}
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Încarcă caietul de sarcini și cerințele vor fi extrase automat din document.
+                </p>
+              </div>
+            )}
+
+            {/* === ISTORIC OFERTE TAB CONTENT === */}
+            {activeTab === 'istoric' && (
+              <div className="bg-surface rounded-xl shadow-sm p-4 space-y-4 border border-border">
+                <div className="text-center py-8">
+                  <svg className="w-12 h-12 text-text-muted mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm font-medium text-text-muted">Istoric Oferte</p>
+                  <p className="text-xs text-text-muted mt-1">Funcționalitate în curs de dezvoltare.</p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* PDF Area - Right Side (70%) */}
-          <div className="bg-surface rounded-xl shadow-lg p-6 min-h-[600px]">
-            {isProcessing && !webhookResponse ? (
-              <div>
-                <LoadingAnimation elapsedSeconds={elapsedSeconds} />
-                {uploadTimestamp && (
-                  <div className="mt-6 text-center">
-                    <p className="text-sm text-text-muted mb-2">
-                      Dacă ați dat refresh în timpul procesării, răspunsul va apărea automat când este gata.
+          {/* Results / PDF Area - Right */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="bg-surface rounded-xl shadow-lg p-6 min-h-[600px]">
+              {/* Cerinta result display */}
+              {activeTab === 'cerinta' && (cerintaLoading || cerintaResult) ? (
+                cerintaLoading ? (
+                  <div className="flex items-center justify-center h-full min-h-[500px]">
+                    <div className="text-center space-y-4">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                      <p className="text-lg font-medium text-text-muted">Se extrag cerințele din document...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-lg font-semibold text-text-main">Cerințe extrase</h2>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xs text-text-muted">{cerintaResult?.length} {cerintaResult?.length === 1 ? 'produs' : 'produse'} găsite</span>
+                        <button
+                          onClick={() => { setCerintaResult(null); setCerintaFile(null); setCerintaError(null); }}
+                          className="px-3 py-1.5 bg-red-900/50 text-red-200 border border-red-900 rounded-lg hover:bg-red-900 text-xs font-medium transition-colors"
+                        >
+                          Șterge rezultat
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {cerintaResult?.map((product, idx) => (
+                        <div key={idx} className="bg-surface-hover border border-border rounded-xl p-5 hover:border-primary/30 transition-colors">
+                          <div className="flex items-start space-x-4">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-sm font-bold text-primary">{idx + 1}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-lg font-semibold text-text-main mb-2">{product.productName}</h3>
+                              <p className="text-base text-text-muted leading-relaxed whitespace-pre-wrap">{product.productDescription}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              ) : isProcessing && !webhookResponse ? (
+                <div>
+                  <LoadingAnimation elapsedSeconds={elapsedSeconds} />
+                  {uploadTimestamp && (
+                    <div className="mt-6 text-center">
+                      <p className="text-sm text-text-muted mb-2">
+                        Dacă ați dat refresh în timpul procesării, răspunsul va apărea automat când este gata.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : webhookResponse ? (
+                <OffersList
+                  webhookResponse={webhookResponse}
+                  onClear={() => {
+                    setWebhookResponse(null)
+                    localStorage.removeItem(STORAGE_KEYS.WEBHOOK_RESPONSE)
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full min-h-[500px]">
+                  <div className="text-center">
+                    <div className="mx-auto w-24 h-24 mb-4 text-border">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-lg font-medium text-text-muted">
+                      Încarcă documente pentru a genera oferte
+                    </p>
+                    <p className="text-sm text-text-muted/60 mt-2">
+                      Documentele generate vor apărea aici
                     </p>
                   </div>
-                )}
-              </div>
-            ) : webhookResponse ? (
-              <OffersList
-                webhookResponse={webhookResponse}
-                onClear={() => {
-                  setWebhookResponse(null)
-                  localStorage.removeItem(STORAGE_KEYS.WEBHOOK_RESPONSE)
-                }}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full min-h-[500px]">
-                <div className="text-center">
-                  <div className="mx-auto w-24 h-24 mb-4 text-border">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <p className="text-lg font-medium text-text-muted">
-                    Încarcă documente pentru a genera oferte
-                  </p>
-                  <p className="text-sm text-text-muted/60 mt-2">
-                    Documentele generate vor apărea aici
-                  </p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
