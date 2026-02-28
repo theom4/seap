@@ -115,8 +115,9 @@ function App() {
   const [optionalProductName, setOptionalProductName] = useState('')
 
   // Cerinta tab state
-  const [cerintaFile, setCerintaFile] = useState<File | null>(null)
+  const [cerintaFiles, setCerintaFiles] = useState<File[]>([])
   const [cerintaLoading, setCerintaLoading] = useState(false)
+  const [cerintaProgress, setCerintaProgress] = useState('')
   const [cerintaResult, setCerintaResult] = useState<Array<{ productName: string; productDescription: string }> | null>(null)
   const [cerintaError, setCerintaError] = useState<string | null>(null)
   const [isCerintaDragging, setIsCerintaDragging] = useState(false)
@@ -317,10 +318,14 @@ function App() {
     e.preventDefault()
     setIsCerintaDragging(false)
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0]
-      setCerintaFile(file)
-      setCerintaResult(null)
-      setCerintaError(null)
+      const newFiles = Array.from(e.dataTransfer.files).filter(f => {
+        const ext = '.' + f.name.split('.').pop()?.toLowerCase()
+        return ['.pdf', '.docx', '.doc'].includes(ext)
+      })
+      if (newFiles.length > 0) {
+        setCerintaFiles(prev => [...prev, ...newFiles])
+        setCerintaError(null)
+      }
     }
   }
 
@@ -545,63 +550,83 @@ function App() {
     setWebhookResponse(mockSeedData)
   }
 
-  // Cerinta: upload file and extract requirements
+  // Cerinta: upload files sequentially and extract requirements
   const handleCerintaUpload = async () => {
-    if (!cerintaFile) return
+    if (cerintaFiles.length === 0) return
     setCerintaLoading(true)
     setCerintaError(null)
     setCerintaResult(null)
 
-    try {
-      const formData = new FormData()
-      formData.append('file', cerintaFile)
+    const allProducts: Array<{ productName: string; productDescription: string }> = []
 
-      const response = await fetch('https://n8n.voisero.info/webhook/seap-document-parsing', {
-        method: 'POST',
-        body: formData,
-      })
+    for (let i = 0; i < cerintaFiles.length; i++) {
+      const file = cerintaFiles[i]
+      setCerintaProgress(`Procesare fișier ${i + 1} din ${cerintaFiles.length}: ${file.name}`)
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`)
-      }
-
-      const data = await response.text()
-
-      // Parse the nested Gemini response: {content:{parts:[{text:"..."}]}}
-      let products: Array<{ productName: string; productDescription: string }> = []
       try {
-        const parsed = JSON.parse(data)
-        let jsonText = ''
+        const formData = new FormData()
+        formData.append('file', file)
 
-        // Handle Gemini-style response
-        if (parsed?.content?.parts?.[0]?.text) {
-          jsonText = parsed.content.parts[0].text
-        } else if (typeof parsed === 'string') {
-          jsonText = parsed
-        } else if (Array.isArray(parsed)) {
-          products = parsed
-        } else {
-          jsonText = data
+        const response = await fetch('https://n8n.voisero.info/webhook/seap-document-parsing', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`)
         }
 
-        // If we got a text string, strip markdown fences and parse
-        if (jsonText && products.length === 0) {
-          jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-          products = JSON.parse(jsonText)
+        const data = await response.text()
+
+        // Parse the nested Gemini response: {content:{parts:[{text:"..."}]}}
+        let products: Array<{ productName: string; productDescription: string }> = []
+        try {
+          const parsed = JSON.parse(data)
+          let jsonText = ''
+
+          // Handle Gemini-style response
+          if (parsed?.content?.parts?.[0]?.text) {
+            jsonText = parsed.content.parts[0].text
+          } else if (typeof parsed === 'string') {
+            jsonText = parsed
+          } else if (Array.isArray(parsed)) {
+            products = parsed
+          } else {
+            jsonText = data
+          }
+
+          // If we got a text string, strip markdown fences and parse
+          if (jsonText && products.length === 0) {
+            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+            products = JSON.parse(jsonText)
+          }
+        } catch (parseErr) {
+          console.warn(`Could not parse as product JSON for file ${file.name}, showing raw:`, parseErr)
+          products = [{ productName: `Rezultat (${file.name})`, productDescription: data }]
         }
-      } catch (parseErr) {
-        console.warn('Could not parse as product JSON, showing raw:', parseErr)
-        // Fallback: show as single product with raw text
-        products = [{ productName: 'Rezultat', productDescription: data }]
+
+        allProducts.push(...products)
+        // Update results progressively so user sees products appearing
+        setCerintaResult([...allProducts])
+      } catch (error) {
+        console.error(`Cerinta upload error for file ${file.name}:`, error)
+        setCerintaError(prev => {
+          const msg = error instanceof Error ? error.message : 'Eroare la procesare'
+          return prev ? `${prev}\n${file.name}: ${msg}` : `${file.name}: ${msg}`
+        })
       }
-
-      setCerintaResult(products)
-    } catch (error) {
-      console.error('Cerinta upload error:', error)
-      setCerintaError(error instanceof Error ? error.message : 'Eroare la procesare')
-    } finally {
-      setCerintaLoading(false)
     }
+
+    if (allProducts.length === 0 && !cerintaResult) {
+      setCerintaError('Nu s-au putut extrage produse din niciunul dintre documente.')
+    }
+
+    setCerintaProgress('')
+    setCerintaLoading(false)
+  }
+
+  const removeCerintaFile = (index: number) => {
+    setCerintaFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   // Link: send links to webhook
@@ -814,7 +839,7 @@ function App() {
   useClaudeInjector({
     onInjectProducts: (products, documentName) => {
       setCerintaResult(products)
-      setCerintaFile(null)
+      setCerintaFiles([])
       setCerintaLoading(false)
       setCerintaError(null)
       setActiveTab('cerinta')
@@ -1248,13 +1273,11 @@ function App() {
               <div className="bg-surface rounded-xl shadow-sm p-4 space-y-4 border border-border">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-text-main block">
-                    Încarcă caietul de sarcini
+                    Încarcă caiete de sarcini
                   </label>
                   <div
                     className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 cursor-pointer ${isCerintaDragging ? 'border-primary bg-surface-hover scale-[1.02] shadow-lg' :
-                      cerintaFile
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border bg-surface hover:border-primary hover:shadow-md'
+                      'border-border bg-surface hover:border-primary hover:shadow-md'
                       }`}
                     onDragOver={handleCerintaDragOver}
                     onDragLeave={handleCerintaDragLeave}
@@ -1268,56 +1291,78 @@ function App() {
                       id="cerinta-file-input"
                       type="file"
                       accept=".pdf,.docx,.doc"
+                      multiple
                       className="hidden"
                       onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        setCerintaFile(file);
-                        setCerintaResult(null);
-                        setCerintaError(null);
+                        if (e.target.files && e.target.files.length > 0) {
+                          const newFiles = Array.from(e.target.files);
+                          setCerintaFiles(prev => [...prev, ...newFiles]);
+                          setCerintaError(null);
+                          // Reset input so same file can be re-added
+                          e.target.value = '';
+                        }
                       }}
                     />
-                    {cerintaFile ? (
-                      <div className="space-y-1">
-                        <svg className="w-8 h-8 text-primary mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <div className="space-y-2">
+                      <div className="mx-auto w-10 h-10">
+                        <svg className="w-full h-full text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
-                        <p className="text-xs font-semibold text-primary truncate">{cerintaFile.name}</p>
-                        <p className="text-[11px] text-text-muted">{(cerintaFile.size / 1024).toFixed(1)} KB</p>
                       </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="mx-auto w-10 h-10">
-                          <svg className="w-full h-full text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-text-main mb-0.5">Încarcă Document</p>
-                          <p className="text-xs text-text-muted">PDF sau DOCX</p>
-                        </div>
+                      <div>
+                        <p className="text-sm font-semibold text-text-main mb-0.5">Încarcă Documente</p>
+                        <p className="text-xs text-text-muted">PDF sau DOCX · mai multe fișiere acceptate</p>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
+
+                {/* Cerinta File List */}
+                {cerintaFiles.length > 0 && (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {cerintaFiles.map((file, index) => (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="bg-surface border border-border rounded-lg p-2.5 flex items-center justify-between hover:bg-surface-hover transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-text-main truncate">{file.name}</p>
+                          <p className="text-[11px] text-text-muted">{(file.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeCerintaFile(index)
+                          }}
+                          disabled={cerintaLoading}
+                          className="px-1.5 py-0.5 text-[11px] font-medium text-text-muted hover:text-red-400 transition-colors disabled:opacity-50"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <button
                   onClick={handleCerintaUpload}
-                  disabled={!cerintaFile || cerintaLoading}
+                  disabled={cerintaFiles.length === 0 || cerintaLoading}
                   className="w-full py-2 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-sm font-bold transition-colors flex items-center justify-center space-x-2"
                 >
                   {cerintaLoading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-back"></div>
-                      <span>Se proceseaza...</span>
+                      <span>{cerintaProgress || 'Se proceseaza...'}</span>
                     </>
                   ) : (
-                    <span>Extrage cerinta</span>
+                    <span>Extrage cerinta ({cerintaFiles.length} {cerintaFiles.length === 1 ? 'fișier' : 'fișiere'})</span>
                   )}
                 </button>
                 {cerintaError && (
-                  <p className="text-xs text-red-400">{cerintaError}</p>
+                  <p className="text-xs text-red-400 whitespace-pre-line">{cerintaError}</p>
                 )}
                 <p className="text-[11px] text-text-muted leading-relaxed">
-                  Încarcă caietul de sarcini și cerințele vor fi extrase automat din document.
+                  Încarcă caiete de sarcini și cerințele vor fi extrase automat din fiecare document, secvențial.
                 </p>
               </div>
             )}
@@ -1370,7 +1415,7 @@ function App() {
                       <div className="flex items-center space-x-3">
                         <span className="text-xs text-text-muted">{cerintaResult?.length} {cerintaResult?.length === 1 ? 'produs' : 'produse'} găsite</span>
                         <button
-                          onClick={() => { setCerintaResult(null); setCerintaFile(null); setCerintaError(null); }}
+                          onClick={() => { setCerintaResult(null); setCerintaFiles([]); setCerintaError(null); }}
                           className="px-3 py-1.5 bg-red-900/50 text-red-200 border border-red-900 rounded-lg hover:bg-red-900 text-xs font-medium transition-colors"
                         >
                           Șterge rezultat
