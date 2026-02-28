@@ -662,41 +662,50 @@ function App() {
 
       const responseData = JSON.parse(responseText)
 
-      // Handle the specific structure from n8n istoric endpoint where data is a stringified JSON in the "json" field
-      let parsedData = responseData;
-      if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].json && typeof responseData[0].json === 'string') {
-        try {
-          // Map over the initial items, parsing the json string, and injecting the 'createdAt' date into the offers
-          parsedData = responseData.flatMap((item: any) => {
-            const offersArray = JSON.parse(item.json);
+      let finalOffers: OfferData[] = [];
 
-            // Apply the top-level 'createdAt' or 'updatedAt' date to each offer's metadata
-            const itemDate = item.createdAt || item.updatedAt;
-            if (itemDate && Array.isArray(offersArray)) {
-              offersArray.forEach((offerWrap: any) => {
-                if (offerWrap.offers && Array.isArray(offerWrap.offers)) {
-                  offerWrap.offers.forEach((offer: any) => {
-                    if (offer.offerMetadata) {
-                      offer.offerMetadata.offerDate = itemDate;
-                    }
-                  });
-                }
-              });
+      if (Array.isArray(responseData) && responseData.length > 0) {
+        responseData.forEach((item: any) => {
+          try {
+            if (item.json && typeof item.json === 'string') {
+              const itemDate = item.createdAt || item.updatedAt;
+              const parsedItem = JSON.parse(item.json);
+
+              const itemOffersWrap = Array.isArray(parsedItem) ? parsedItem : [parsedItem];
+
+              // Inject the history date into each offer metadata
+              if (itemDate) {
+                itemOffersWrap.forEach((offerWrap: any) => {
+                  if (offerWrap.offers && Array.isArray(offerWrap.offers)) {
+                    offerWrap.offers.forEach((offer: any) => {
+                      if (offer.offerMetadata) {
+                        offer.offerMetadata.offerDate = itemDate;
+                      }
+                    });
+                  } else if (offerWrap.offerMetadata) {
+                    offerWrap.offerMetadata.offerDate = itemDate;
+                  }
+                });
+              }
+
+              // Extract and consolidate offers *specifically* for this history row
+              const extractedItemOffers = getAllOffers(itemOffersWrap);
+              const consolidatedItemOffer = consolidateOffers(extractedItemOffers);
+
+              if (consolidatedItemOffer) {
+                finalOffers.push(consolidatedItemOffer);
+              } else if (extractedItemOffers.length > 0) {
+                finalOffers.push(...extractedItemOffers);
+              }
             }
-            return offersArray;
-          });
-        } catch (e) {
-          console.error("Failed to parse json string from istoric response", e)
-        }
+          } catch (e) {
+            console.error("Failed to parse json string from istoric item", e)
+          }
+        });
       }
 
-      const offersFromIstoric = getAllOffers(parsedData)
-      const consolidatedOffer = consolidateOffers(offersFromIstoric)
-
-      if (consolidatedOffer) {
-        setIstoricWebhookResponse([consolidatedOffer])
-      } else if (offersFromIstoric.length > 0) {
-        setIstoricWebhookResponse(offersFromIstoric)
+      if (finalOffers.length > 0) {
+        setIstoricWebhookResponse(finalOffers)
       } else {
         console.warn('No offers found in istoric response')
       }
