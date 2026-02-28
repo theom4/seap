@@ -7,6 +7,7 @@ import { extractProductsFromPDF } from './utils/pdfExtraction'
 import type { WebhookResponse, OfferData } from './types'
 import { getAllOffers, consolidateOffers } from './utils/webhookUtils'
 import './App.css'
+import { useClaudeInjector } from './hooks/useClaudeInjector'
 
 // LocalStorage keys
 const STORAGE_KEYS = {
@@ -104,6 +105,7 @@ function App() {
   const [uploadTimestamp, setUploadTimestamp] = useState<number | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [activeTab, setActiveTab] = useState<'fisier' | 'link' | 'cerinta' | 'istoric'>('fisier')
+  const [injectorStatus, setInjectorStatus] = useState<string | null>(null)
 
   // Model Selection State
   const [modelProvider, setModelProvider] = useState<ModelProvider>('openai')
@@ -117,12 +119,18 @@ function App() {
   const [cerintaLoading, setCerintaLoading] = useState(false)
   const [cerintaResult, setCerintaResult] = useState<Array<{ productName: string; productDescription: string }> | null>(null)
   const [cerintaError, setCerintaError] = useState<string | null>(null)
+  const [isCerintaDragging, setIsCerintaDragging] = useState(false)
 
   // Link tab state
   const [linkText, setLinkText] = useState('')
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkWebhookResponse, setLinkWebhookResponse] = useState<WebhookResponse | null>(null)
   const [linkElapsedSeconds, setLinkElapsedSeconds] = useState(0)
+
+  // Istoric tab state
+  const [istoricLoading, setIstoricLoading] = useState(false)
+  const [istoricWebhookResponse, setIstoricWebhookResponse] = useState<WebhookResponse | null>(null)
+  const [istoricElapsedSeconds, setIstoricElapsedSeconds] = useState(0)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -293,6 +301,27 @@ function App() {
     e.preventDefault()
     setIsDragging(false)
     handleFileSelect(e.dataTransfer.files)
+  }
+
+  const handleCerintaDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsCerintaDragging(true)
+  }
+
+  const handleCerintaDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsCerintaDragging(false)
+  }
+
+  const handleCerintaDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsCerintaDragging(false)
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0]
+      setCerintaFile(file)
+      setCerintaResult(null)
+      setCerintaError(null)
+    }
   }
 
 
@@ -612,6 +641,72 @@ function App() {
     }
   }
 
+  // Istoric: fetch from webhook
+  const handleIstoricFetch = async () => {
+    setIstoricLoading(true)
+    setIstoricWebhookResponse(null)
+    try {
+      const response = await fetch('https://n8n.voisero.info/webhook/seap-istoric', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status} ${response.statusText}`)
+      }
+
+      const responseText = await response.text()
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Empty response from server')
+      }
+
+      const responseData = JSON.parse(responseText)
+
+      // Handle the specific structure from n8n istoric endpoint where data is a stringified JSON in the "json" field
+      let parsedData = responseData;
+      if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].json && typeof responseData[0].json === 'string') {
+        try {
+          // Map over the initial items, parsing the json string, and injecting the 'createdAt' date into the offers
+          parsedData = responseData.flatMap((item: any) => {
+            const offersArray = JSON.parse(item.json);
+
+            // Apply the top-level 'createdAt' or 'updatedAt' date to each offer's metadata
+            const itemDate = item.createdAt || item.updatedAt;
+            if (itemDate && Array.isArray(offersArray)) {
+              offersArray.forEach((offerWrap: any) => {
+                if (offerWrap.offers && Array.isArray(offerWrap.offers)) {
+                  offerWrap.offers.forEach((offer: any) => {
+                    if (offer.offerMetadata) {
+                      offer.offerMetadata.offerDate = itemDate;
+                    }
+                  });
+                }
+              });
+            }
+            return offersArray;
+          });
+        } catch (e) {
+          console.error("Failed to parse json string from istoric response", e)
+        }
+      }
+
+      const offersFromIstoric = getAllOffers(parsedData)
+      const consolidatedOffer = consolidateOffers(offersFromIstoric)
+
+      if (consolidatedOffer) {
+        setIstoricWebhookResponse([consolidatedOffer])
+      } else if (offersFromIstoric.length > 0) {
+        setIstoricWebhookResponse(offersFromIstoric)
+      } else {
+        console.warn('No offers found in istoric response')
+      }
+    } catch (error) {
+      console.error('Istoric fetch error:', error)
+    } finally {
+      setIstoricLoading(false)
+    }
+  }
+
   const isProcessing = files.some(f => f.status === 'extracting' || f.status === 'uploading')
   const hasFiles = files.length > 0
 
@@ -643,6 +738,19 @@ function App() {
     }, 1000)
     return () => clearInterval(interval)
   }, [linkLoading])
+
+  // Timer for istoric loading animation
+  useEffect(() => {
+    if (!istoricLoading) {
+      setIstoricElapsedSeconds(0)
+      return
+    }
+    setIstoricElapsedSeconds(0)
+    const interval = setInterval(() => {
+      setIstoricElapsedSeconds(prev => prev + 1)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [istoricLoading])
 
   // Play notification sound when webhook response is received
   useEffect(() => {
@@ -694,6 +802,27 @@ function App() {
     }
   }, [webhookResponse, notifyOnCompletion])
 
+  useClaudeInjector({
+    onInjectProducts: (products, documentName) => {
+      setCerintaResult(products)
+      setCerintaFile(null)
+      setCerintaLoading(false)
+      setCerintaError(null)
+      setActiveTab('cerinta')
+      setInjectorStatus(`✓ Claude a injectat ${products.length} produse din "${documentName}"`)
+      setTimeout(() => setInjectorStatus(null), 5000)
+    },
+    onInjectLinks: (links) => {
+      setLinkText(links.map(l => l.url).join(', '))
+      setActiveTab('link')
+      setInjectorStatus(`✓ Claude a injectat ${links.length} linkuri`)
+      setTimeout(() => setInjectorStatus(null), 5000)
+    },
+    onPing: () => {
+      setInjectorStatus('🟢 Claude Code conectat')
+      setTimeout(() => setInjectorStatus(null), 3000)
+    },
+  })
 
   return (
     <div className="min-h-screen bg-back text-text-main flex">
@@ -812,6 +941,12 @@ function App() {
             {activeTab === 'cerinta' && 'Extrage cerinta din caietul de sarcina'}
             {activeTab === 'istoric' && 'Istoric Oferte'}
           </h1>
+          {injectorStatus && (
+            <div className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(85,212,108,0.1)', border: '1px solid rgba(85,212,108,0.3)', color: '#55d46c' }}>
+              {injectorStatus}
+            </div>
+          )}
         </div>
 
         {/* Content Body */}
@@ -1107,10 +1242,14 @@ function App() {
                     Încarcă caietul de sarcini
                   </label>
                   <div
-                    className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 cursor-pointer ${cerintaFile
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-surface hover:border-primary hover:shadow-md'
+                    className={`border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300 cursor-pointer ${isCerintaDragging ? 'border-primary bg-surface-hover scale-[1.02] shadow-lg' :
+                      cerintaFile
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border bg-surface hover:border-primary hover:shadow-md'
                       }`}
+                    onDragOver={handleCerintaDragOver}
+                    onDragLeave={handleCerintaDragLeave}
+                    onDrop={handleCerintaDrop}
                     onClick={() => {
                       const input = document.getElementById('cerinta-file-input');
                       if (input) input.click();
@@ -1177,12 +1316,27 @@ function App() {
             {/* === ISTORIC OFERTE TAB CONTENT === */}
             {activeTab === 'istoric' && (
               <div className="bg-surface rounded-xl shadow-sm p-4 space-y-4 border border-border">
-                <div className="text-center py-8">
-                  <svg className="w-12 h-12 text-text-muted mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-sm font-medium text-text-muted">Istoric Oferte</p>
-                  <p className="text-xs text-text-muted mt-1">Funcționalitate în curs de dezvoltare.</p>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-text-main block mb-2">
+                    Extragere din istoric
+                  </label>
+                  <button
+                    onClick={handleIstoricFetch}
+                    disabled={istoricLoading}
+                    className="w-full py-2 bg-primary text-back rounded-lg hover:bg-primary-hover disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-sm font-bold transition-colors flex items-center justify-center space-x-2"
+                  >
+                    {istoricLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-back"></div>
+                        <span>Se extrage...</span>
+                      </>
+                    ) : (
+                      <span>Extrage oferte din trecut</span>
+                    )}
+                  </button>
+                  <p className="text-[11px] text-text-muted leading-relaxed mt-2">
+                    Apasă butonul pentru a prelua și genera ofertele salvate în istoric.
+                  </p>
                 </div>
               </div>
             )}
@@ -1241,6 +1395,19 @@ function App() {
                     webhookResponse={linkWebhookResponse}
                     onClear={() => {
                       setLinkWebhookResponse(null)
+                    }}
+                  />
+                ) : null
+              ) : activeTab === 'istoric' && (istoricLoading || istoricWebhookResponse) ? (
+                istoricLoading ? (
+                  <div>
+                    <LoadingAnimation elapsedSeconds={istoricElapsedSeconds} />
+                  </div>
+                ) : istoricWebhookResponse ? (
+                  <OffersList
+                    webhookResponse={istoricWebhookResponse}
+                    onClear={() => {
+                      setIstoricWebhookResponse(null)
                     }}
                   />
                 ) : null
