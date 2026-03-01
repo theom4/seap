@@ -15,6 +15,8 @@ const STORAGE_KEYS = {
   WEBHOOK_RESPONSE: 'pdf_uploader_webhook_response',
   PROCESSING_STATE: 'pdf_uploader_processing_state',
   UPLOAD_TIMESTAMP: 'pdf_uploader_upload_timestamp',
+  CERINTA_RESULT: 'pdf_uploader_cerinta_result',
+  CERINTA_BATCHES: 'pdf_uploader_cerinta_batches',
 }
 
 // Loading Animation Component
@@ -183,6 +185,19 @@ function App() {
         // The user will need to re-upload if they want to process again
         console.log('Previous files detected:', fileMetadata.length)
       }
+      // Load cerinta result
+      const savedCerintaResult = localStorage.getItem(STORAGE_KEYS.CERINTA_RESULT)
+      if (savedCerintaResult) {
+        const parsed = JSON.parse(savedCerintaResult)
+        if (Array.isArray(parsed)) setCerintaResult(parsed)
+      }
+
+      // Load cerinta batches
+      const savedCerintaBatches = localStorage.getItem(STORAGE_KEYS.CERINTA_BATCHES)
+      if (savedCerintaBatches) {
+        const parsed = JSON.parse(savedCerintaBatches)
+        if (Array.isArray(parsed)) setBatches(parsed)
+      }
     } catch (error) {
       console.error('Error loading state from localStorage:', error)
     }
@@ -241,7 +256,32 @@ function App() {
   }, [webhookResponse])
 
 
-  // Save files metadata (without File objects)
+  // Save files metadata (without File objects)  // Save cerinta result to localStorage
+  useEffect(() => {
+    try {
+      if (cerintaResult) {
+        localStorage.setItem(STORAGE_KEYS.CERINTA_RESULT, JSON.stringify(cerintaResult))
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.CERINTA_RESULT)
+      }
+    } catch (error) {
+      console.error('Error saving cerinta result to localStorage:', error)
+    }
+  }, [cerintaResult])
+
+  // Save cerinta batches to localStorage
+  useEffect(() => {
+    try {
+      if (batches.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.CERINTA_BATCHES, JSON.stringify(batches))
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.CERINTA_BATCHES)
+      }
+    } catch (error) {
+      console.error('Error saving cerinta batches to localStorage:', error)
+    }
+  }, [batches])
+
   useEffect(() => {
     try {
       const fileMetadata: FileMetadata[] = files.map(f => ({
