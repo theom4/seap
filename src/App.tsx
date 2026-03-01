@@ -114,7 +114,10 @@ function App() {
   const [webhookResponse, setWebhookResponse] = useState<WebhookResponse | null>(null)
   const [uploadTimestamp, setUploadTimestamp] = useState<number | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [activeTab, setActiveTab] = useState<'fisier' | 'link' | 'cerinta' | 'istoric'>('fisier')
+  const validTabs = ['fisier', 'link', 'cerinta', 'istoric'] as const
+  type Tab = typeof validTabs[number]
+  const hashTab = window.location.hash.replace('#', '') as Tab
+  const [activeTab, setActiveTab] = useState<Tab>(validTabs.includes(hashTab) ? hashTab : 'fisier')
   const [injectorStatus, setInjectorStatus] = useState<string | null>(null)
 
   // Model Selection State
@@ -153,6 +156,20 @@ function App() {
     setSelectedModel(MODELS[modelProvider][0])
   }, [modelProvider])
 
+  // Sync activeTab → URL hash
+  useEffect(() => {
+    window.location.hash = activeTab
+  }, [activeTab])
+
+  // Sync URL hash → activeTab (browser back/forward)
+  useEffect(() => {
+    const onHashChange = () => {
+      const tab = window.location.hash.replace('#', '') as Tab
+      if (validTabs.includes(tab)) setActiveTab(tab)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
 
   // Load state from localStorage on mount
   useEffect(() => {
