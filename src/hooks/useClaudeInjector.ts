@@ -13,6 +13,7 @@ export interface InjectedLink {
 export interface InjectorCallbacks {
     onInjectProducts?: (products: InjectedProduct[], documentName: string) => void
     onInjectLinks?: (links: InjectedLink[]) => void
+    onSetStatus?: (batchId: string, status: string) => void
     onPing?: () => void
 }
 
@@ -34,6 +35,8 @@ export function useClaudeInjector(callbacks: InjectorCallbacks) {
                 products?: InjectedProduct[]
                 links?: InjectedLink[]
                 documentName?: string
+                status?: string
+                metadata?: Record<string, unknown>
             }> = data.injections || []
 
             for (const injection of injections) {
@@ -48,6 +51,14 @@ export function useClaudeInjector(callbacks: InjectorCallbacks) {
                             callbacksRef.current.onInjectLinks(injection.links)
                         }
                         break
+                    case 'set_status': {
+                        const batchId = (injection.metadata?.batchId as string) || injection.documentName || ''
+                        const status = injection.status || ''
+                        if (batchId && status && callbacksRef.current.onSetStatus) {
+                            callbacksRef.current.onSetStatus(batchId, status)
+                        }
+                        break
+                    }
                     case 'ping':
                         callbacksRef.current.onPing?.()
                         break

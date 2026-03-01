@@ -72,6 +72,14 @@ interface ProcessingState {
   uploadTimestamp: number | null
 }
 
+interface Batch {
+  id: string
+  fileName: string
+  products: Array<{ productName: string; productDescription: string }>
+  productCount: number
+  status: 'pending' | 'processing' | 'done'
+}
+
 //const WEBHOOK_URL = 'https://n8n.voisero.info/webhook/generare-oferte-nanoassist';
 
 // Model Definitions
@@ -132,6 +140,9 @@ function App() {
   const [istoricLoading, setIstoricLoading] = useState(false)
   const [istoricWebhookResponse, setIstoricWebhookResponse] = useState<WebhookResponse | null>(null)
   const [istoricElapsedSeconds, setIstoricElapsedSeconds] = useState(0)
+
+  // Batch state
+  const [batches, setBatches] = useState<Batch[]>([])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -497,8 +508,30 @@ function App() {
               const current = (prev as OfferData[]) || []
               return [...current, consolidatedOffer]
             })
+
+            // Add to batch list
+            const batchProducts = (consolidatedOffer.offerConent?.products || consolidatedOffer.offerContent?.products || []).map(
+              p => ({ productName: p.productName, productDescription: String(p.unitPriceNoVAT ?? '') })
+            )
+            const productCount = batchProducts.length
+            setBatches(prev => [...prev, {
+              id: `batch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              fileName: fileStat.file.name,
+              products: batchProducts,
+              productCount,
+              status: 'done',
+            }])
           } else {
             console.warn('No offers found in response for file:', fileStat.file.name)
+
+            // Still add to batch list with 0 products
+            setBatches(prev => [...prev, {
+              id: `batch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              fileName: fileStat.file.name,
+              products: [],
+              productCount: 0,
+              status: 'done',
+            }])
           }
 
           // 7. Mark Success
@@ -527,6 +560,12 @@ function App() {
       setUploadTimestamp(null)
       localStorage.removeItem(STORAGE_KEYS.UPLOAD_TIMESTAMP)
     }
+    // Auto-notify n8n after all files are processed
+    // Use functional form to get latest batches
+    setBatches(prev => {
+      notifyClaudeCode(prev)
+      return prev
+    })
   }
 
   const removeFile = (index: number) => {
@@ -537,6 +576,7 @@ function App() {
     setFiles([])
     setWebhookResponse(null)
     setUploadTimestamp(null)
+    setBatches([])
 
     // Clear all localStorage
     Object.values(STORAGE_KEYS).forEach(key => {
@@ -550,14 +590,16 @@ function App() {
     setWebhookResponse(mockSeedData)
   }
 
-  // Cerinta: upload files sequentially and extract requirements
+  // Cerinta: upload files sequentially and extract requirements, grouped by document (batch)
   const handleCerintaUpload = async () => {
     if (cerintaFiles.length === 0) return
     setCerintaLoading(true)
     setCerintaError(null)
     setCerintaResult(null)
+    setBatches([])
 
     const allProducts: Array<{ productName: string; productDescription: string }> = []
+    const newBatches: Batch[] = []
 
     for (let i = 0; i < cerintaFiles.length; i++) {
       const file = cerintaFiles[i]
@@ -605,11 +647,34 @@ function App() {
           products = [{ productName: `Rezultat (${file.name})`, productDescription: data }]
         }
 
+        // Create a batch for this document
+        const batch: Batch = {
+          id: `batch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          fileName: file.name,
+          products,
+          productCount: products.length,
+          status: 'done',
+        }
+        newBatches.push(batch)
+        setBatches([...newBatches])
+
         allProducts.push(...products)
         // Update results progressively so user sees products appearing
         setCerintaResult([...allProducts])
       } catch (error) {
         console.error(`Cerinta upload error for file ${file.name}:`, error)
+
+        // Still create a batch entry for failed files
+        const batch: Batch = {
+          id: `batch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          fileName: file.name,
+          products: [],
+          productCount: 0,
+          status: 'done',
+        }
+        newBatches.push(batch)
+        setBatches([...newBatches])
+
         setCerintaError(prev => {
           const msg = error instanceof Error ? error.message : 'Eroare la procesare'
           return prev ? `${prev}\n${file.name}: ${msg}` : `${file.name}: ${msg}`
@@ -623,6 +688,9 @@ function App() {
 
     setCerintaProgress('')
     setCerintaLoading(false)
+
+    // Auto-notify n8n after all files are processed
+    await notifyClaudeCode(newBatches)
   }
 
   const removeCerintaFile = (index: number) => {
@@ -836,6 +904,22 @@ function App() {
     }
   }, [webhookResponse, notifyOnCompletion])
 
+  // Auto-notify n8n once all batches are ready
+  const notifyClaudeCode = async (currentBatches: Batch[]) => {
+    if (currentBatches.length === 0) return
+    try {
+      await fetch('https://n8n.voisero.info/webhook/start-claude-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batches: currentBatches }),
+      })
+      setInjectorStatus(`✓ Batch-urile au fost trimise (${currentBatches.length})`)
+      setTimeout(() => setInjectorStatus(null), 5000)
+    } catch (error) {
+      console.error('notifyClaudeCode error:', error)
+    }
+  }
+
   useClaudeInjector({
     onInjectProducts: (products, documentName) => {
       setCerintaResult(products)
@@ -851,6 +935,15 @@ function App() {
       setActiveTab('link')
       setInjectorStatus(`✓ Claude a injectat ${links.length} linkuri`)
       setTimeout(() => setInjectorStatus(null), 5000)
+    },
+    onSetStatus: (batchId, status) => {
+      setBatches(prev => prev.map(b =>
+        b.id === batchId || b.fileName === batchId
+          ? { ...b, status: status as Batch['status'] }
+          : b
+      ))
+      setInjectorStatus(`🔄 Status actualizat: ${batchId} → ${status}`)
+      setTimeout(() => setInjectorStatus(null), 3000)
     },
     onPing: () => {
       setInjectorStatus('🟢 Claude Code conectat')
@@ -1230,6 +1323,49 @@ function App() {
                     </div>
                   </div>
                 )}
+
+                {/* Batch List */}
+                {batches.length > 0 && (
+                  <div className="bg-surface rounded-xl shadow-sm p-3 space-y-2 border border-border">
+                    <h2 className="text-sm font-semibold text-text-main">
+                      Batch-uri ({batches.length})
+                    </h2>
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                      {batches.map((batch) => (
+                        <div
+                          key={batch.id}
+                          className="bg-surface border border-border rounded-lg p-2.5 flex items-center justify-between hover:bg-surface-hover transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-text-main truncate">
+                              📄 {batch.fileName}
+                            </p>
+                            <p className="text-[11px] text-text-muted">
+                              {batch.productCount} {batch.productCount === 1 ? 'produs' : 'produse'}
+                            </p>
+                          </div>
+                          <div className="ml-2 flex-shrink-0">
+                            {batch.status === 'pending' && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-700/50 text-gray-300 border border-gray-600">
+                                ⏳ Pending
+                              </span>
+                            )}
+                            {batch.status === 'processing' && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-yellow-900/30 text-yellow-300 border border-yellow-700/50">
+                                🟡 Processing
+                              </span>
+                            )}
+                            {batch.status === 'done' && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-900/30 text-green-300 border border-green-700/50">
+                                ✅ Done
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
 
@@ -1399,13 +1535,14 @@ function App() {
           {/* Results / PDF Area - Right */}
           <div className="flex-1 overflow-y-auto p-6">
             <div className="bg-surface rounded-xl shadow-lg p-6 min-h-[600px]">
-              {/* Cerinta result display */}
+              {/* Cerinta result display — grouped by document (batch) */}
               {activeTab === 'cerinta' && (cerintaLoading || cerintaResult) ? (
                 cerintaLoading ? (
                   <div className="flex items-center justify-center h-full min-h-[500px]">
                     <div className="text-center space-y-4">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
                       <p className="text-lg font-medium text-text-muted">Se extrag cerințele din document...</p>
+                      {cerintaProgress && <p className="text-sm text-text-muted">{cerintaProgress}</p>}
                     </div>
                   </div>
                 ) : (
@@ -1413,26 +1550,65 @@ function App() {
                     <div className="flex justify-between items-center">
                       <h2 className="text-lg font-semibold text-text-main">Cerințe extrase</h2>
                       <div className="flex items-center space-x-3">
-                        <span className="text-xs text-text-muted">{cerintaResult?.length} {cerintaResult?.length === 1 ? 'produs' : 'produse'} găsite</span>
+                        <span className="text-xs text-text-muted">
+                          {batches.length} {batches.length === 1 ? 'document' : 'documente'} · {cerintaResult?.length || 0} {(cerintaResult?.length || 0) === 1 ? 'produs' : 'produse'}
+                        </span>
                         <button
-                          onClick={() => { setCerintaResult(null); setCerintaFiles([]); setCerintaError(null); }}
+                          onClick={() => { setCerintaResult(null); setCerintaFiles([]); setCerintaError(null); setBatches([]); }}
                           className="px-3 py-1.5 bg-red-900/50 text-red-200 border border-red-900 rounded-lg hover:bg-red-900 text-xs font-medium transition-colors"
                         >
                           Șterge rezultat
                         </button>
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      {cerintaResult?.map((product, idx) => (
-                        <div key={idx} className="bg-surface-hover border border-border rounded-xl p-5 hover:border-primary/30 transition-colors">
-                          <div className="flex items-start space-x-4">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <span className="text-sm font-bold text-primary">{idx + 1}</span>
+
+
+                    {/* Products grouped by document */}
+                    <div className="space-y-5">
+                      {batches.map((batch) => (
+                        <div key={batch.id} className="border border-border rounded-xl overflow-hidden">
+                          {/* Document header */}
+                          <div className="bg-surface-hover px-5 py-3 flex items-center justify-between border-b border-border">
+                            <div className="flex items-center space-x-3 min-w-0">
+                              <span className="text-lg">📄</span>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-text-main truncate">{batch.fileName}</p>
+                                <p className="text-[11px] text-text-muted">{batch.productCount} {batch.productCount === 1 ? 'produs' : 'produse'}</p>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-lg font-semibold text-text-main mb-2">{product.productName}</h3>
-                              <p className="text-base text-text-muted leading-relaxed whitespace-pre-wrap">{product.productDescription}</p>
+                            <div className="flex-shrink-0 ml-2">
+                              {batch.status === 'pending' && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-gray-700/50 text-gray-300 border border-gray-600">
+                                  ⏳ Pending
+                                </span>
+                              )}
+                              {batch.status === 'processing' && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-yellow-900/30 text-yellow-300 border border-yellow-700/50">
+                                  🟡 Processing
+                                </span>
+                              )}
+                              {batch.status === 'done' && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-green-900/30 text-green-300 border border-green-700/50">
+                                  ✅ Done
+                                </span>
+                              )}
                             </div>
+                          </div>
+                          {/* Product list for this document */}
+                          <div className="divide-y divide-border">
+                            {batch.products.map((product, idx) => (
+                              <div key={idx} className="px-5 py-4 hover:bg-surface-hover/50 transition-colors">
+                                <div className="flex items-start space-x-4">
+                                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span className="text-xs font-bold text-primary">{idx + 1}</span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="text-sm font-semibold text-text-main mb-1">{product.productName}</h3>
+                                    <p className="text-xs text-text-muted leading-relaxed whitespace-pre-wrap">{product.productDescription}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       ))}
@@ -1462,6 +1638,17 @@ function App() {
                     webhookResponse={istoricWebhookResponse}
                     onClear={() => {
                       setIstoricWebhookResponse(null)
+                    }}
+                    onDelete={async (offer) => {
+                      try {
+                        await fetch('https://n8n.voisero.info/webhook/delete-seap', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(offer),
+                        })
+                      } catch (error) {
+                        console.error('Delete webhook error:', error)
+                      }
                     }}
                   />
                 ) : null
@@ -1505,7 +1692,7 @@ function App() {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   )
 }
 
