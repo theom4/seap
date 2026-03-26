@@ -114,7 +114,7 @@ function App() {
   const [webhookResponse, setWebhookResponse] = useState<WebhookResponse | null>(null)
   const [uploadTimestamp, setUploadTimestamp] = useState<number | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const validTabs = ['fisier', 'link', 'cerinta', 'istoric'] as const
+  const validTabs = ['fisier', 'link', 'cerinta', 'istoric', 'instructiuni_robot'] as const
   type Tab = typeof validTabs[number]
   const hashTab = window.location.hash.replace('#', '') as Tab
   const [activeTab, setActiveTab] = useState<Tab>(validTabs.includes(hashTab) ? hashTab : 'fisier')
@@ -666,6 +666,22 @@ function App() {
         const formData = new FormData()
         formData.append('file', file)
 
+        // Detect MIME type from the File object, with fallback based on extension
+        let detectedMimeType = file.type
+        if (!detectedMimeType) {
+          const ext = file.name.split('.').pop()?.toLowerCase()
+          const mimeMap: Record<string, string> = {
+            pdf: 'application/pdf',
+            docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            doc: 'application/msword',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            png: 'image/png',
+          }
+          detectedMimeType = (ext && mimeMap[ext]) || 'application/octet-stream'
+        }
+        formData.append('mimeType', detectedMimeType)
+
         const response = await fetch('https://n8n.voisero.info/webhook/seap-document-parsing', {
           method: 'POST',
           body: formData,
@@ -1097,6 +1113,25 @@ function App() {
           </div>
         </button>
 
+        <button
+          onClick={() => setActiveTab('instructiuni_robot')}
+          className={`group relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${activeTab === 'instructiuni_robot'
+            ? 'bg-primary/15 text-primary shadow-sm'
+            : 'text-text-muted hover:text-text-main hover:bg-surface-hover'
+            }`}
+          title="Instructiuni Robot"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          {activeTab === 'instructiuni_robot' && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
+          )}
+          <div className="absolute left-full ml-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+            Instructiuni Robot
+          </div>
+        </button>
+
         {/* Spacer */}
         <div className="flex-1" />
 
@@ -1124,6 +1159,7 @@ function App() {
             {activeTab === 'link' && 'Cautare Dupa link'}
             {activeTab === 'cerinta' && 'Extrage cerinta din caietul de sarcina'}
             {activeTab === 'istoric' && 'Istoric Oferte'}
+            {activeTab === 'instructiuni_robot' && 'Instructiuni Robot'}
           </h1>
           {injectorStatus && (
             <div className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
@@ -1137,6 +1173,41 @@ function App() {
         <div className="flex-1 flex overflow-hidden">
           {/* Controls Panel - Left */}
           <div className="w-[340px] flex-shrink-0 border-r border-border bg-surface/50 overflow-y-auto p-4 space-y-4">
+
+            {/* === INSTRUCTIUNI ROBOT TAB CONTENT === */}
+            {activeTab === 'instructiuni_robot' && (
+              <div className="bg-surface rounded-xl shadow-sm p-4 border border-border space-y-4">
+                <div className="space-y-1">
+                  <h2 className="text-sm font-bold text-text-main">#Rol</h2>
+                  <p className="text-xs text-text-muted leading-relaxed">-Esti un consultant SEAP ce are rolul de a cauta produse si ajuta angajatii sa elimine sarcinile repetitive la procesarea documentelor</p>
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-sm font-bold text-text-main">#Context</h2>
+                  <p className="text-xs text-text-muted leading-relaxed">-In SEAP, fiecare caiet de sarcina poate contine unul sau mai multe produse.</p>
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-sm font-bold text-text-main">#Reguli</h2>
+                  <ul className="text-xs text-text-muted leading-relaxed space-y-1">
+                    <li>-NU ai voie sa cauti produse direct pe google.com sau prin web search tool. Singurul mod prin care poti cauta produse este pe chatgpt.com. In momentul in care ceva nu merge conform planurilor, doar semnalezi acest lucru si te opresti</li>
+                    <li>-Produsele gasite trebuie sa fie din romania, nu din alta tara</li>
+                    <li>-Orice nu intelegi semnalezi</li>
+                  </ul>
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-sm font-bold text-text-main">#Sarcina</h2>
+                  <ol className="text-xs text-text-muted leading-relaxed space-y-3 list-none">
+                    <li><span className="font-semibold text-text-main">1.</span> Intra pe platforma de SEAP https://seap-pied.vercel.app/#cerinta<br />-Ca context, aici vei vedea mai multe produse cu specificatiile lor impartite in batches<br />-Aici nu schimbi/resetezi nicio pagina, doar iei ce vezi pe pagina de inceput<br />-Nu resetezi pagina, doar citesti exact pagina curenta fara sa ii faci modificari<br />-NU deschizi niciun tab nou si nu modifici nimic aici, ci doar citesti</li>
+                    <li><span className="font-semibold text-text-main">2.</span> Deschide un singur tab nou si Du-te pe chatgpt.com si urmeaza urmatorul flow aici:<br />-spune-i sa caute produsul luat in ordine care respecta toate cerintele din specificatie. Trebuie sa gaseasca un singur produs din romania care sa respecte cerintele 100% din specificatii (tu comunici cu el, ca si cum i-ai cere ajutor lui)<br />-magazinul online pe care gaseste produsul nu conteaza<br />-(acest lucru se face comunicand cu el in acea bara de cautare)<br />-IMPORTANT: aici cand vorbesti cu chat gpt, nu ai voie sa pui
+                      cand pui specificatiile produsului, pentru ca se intelege ca enter si chat gpt nu o sa capteze datele produsului</li>
+                    <li><span className="font-semibold text-text-main">3.</span> Dupa ce chat gpt a gasit acel produs, intreaba-l daca produsul gasit de el mai sus se potriveste 100% cerintei tale initiale. Ai maxim 2 incercari aici de a face acest lucru.<br />-IMPORTANT: TREBUIE CA PRODUSUL SA RESPECTE CERINTELE DIN SPECIFICATII 100%, ALTFEL NU POTI TRECE MAI DEPARTE<br />-IMPORTANT: aici cand vorbesti cu chat gpt, nu ai voie sa pui
+                      cand pui specificatiile produsului, pentru ca se intelege ca enter si chat gpt nu o sa capteze datele produsului</li>
+                    <li><span className="font-semibold text-text-main">4.</span> Dupa ce ti-a dat produsul, ia link-ul produsului, memoreaza-l, si treci apoi la urmatorul produs din batch din https://seap-pied.vercel.app/#cerinta.<br />-Vei continua asa pana termini batchurile</li>
+                    <li><span className="font-semibold text-text-main">5.</span> Dupa ce termini un batch cu gasirea produselor, trimiti un POST request la https://n8n.voisero.info/webhook/seap-link iar body-ul sa arate de exemplu asa:<br /><code className="block mt-1 bg-surface-hover rounded p-2 text-xs font-mono">{'{"links": "https://mobelhaus.com/living/..."}'}</code></li>
+                    <li><span className="font-semibold text-text-main">6.</span> Te opresti aici, vei cauta un singur produs deocamdata</li>
+                  </ol>
+                </div>
+              </div>
+            )}
 
             {/* === FISIER TAB CONTENT === */}
             {activeTab === 'fisier' && (
