@@ -52,11 +52,28 @@ function normalizeOffer(rawOffer: unknown, context: string): OfferData | null {
   let products = rawContent.products || []
   if (products.length === 0 && (rawContent.title || rawContent.subtitle)) {
     // Extract price from productPrice string (e.g., "70,00 RON / intervenție" -> 70.00)
+    // Handles European formats: "1.099" (dot as thousands sep) and "4434,08" (comma as decimal sep)
     let unitPrice = 0
     if (rawContent.productPrice && typeof rawContent.productPrice === 'string') {
-      const priceMatch = rawContent.productPrice.match(/[\d,]+/)
+      const priceMatch = rawContent.productPrice.match(/[\d.,]+/)
       if (priceMatch) {
-        unitPrice = parseFloat(priceMatch[0].replace(',', '.'))
+        let priceStr = priceMatch[0]
+        // Detect European thousands separator: dot followed by exactly 3 digits (e.g., "1.099", "12.345.678")
+        // vs a decimal dot (e.g., "4434.08")
+        const hasDot = priceStr.includes('.')
+        const hasComma = priceStr.includes(',')
+        if (hasDot && hasComma) {
+          // Both present: dot is thousands, comma is decimal (e.g., "1.234,56")
+          priceStr = priceStr.replace(/\./g, '').replace(',', '.')
+        } else if (hasDot && /\.\d{3}(?:\.|$)/.test(priceStr)) {
+          // Dot followed by exactly 3 digits = thousands separator (e.g., "1.099", "1.234.567")
+          priceStr = priceStr.replace(/\./g, '')
+        } else if (hasComma) {
+          // Comma only: treat as decimal separator (e.g., "70,00")
+          priceStr = priceStr.replace(',', '.')
+        }
+        // else: dot is decimal separator (e.g., "4434.08") - no change needed
+        unitPrice = parseFloat(priceStr)
       }
     }
     let productName = rawContent.title || rawContent.subtitle || 'Produs'
